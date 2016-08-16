@@ -11,10 +11,10 @@ class Env(object):
         self.repository = repository
 
     def calc_dates(self):
-        return self.repository.calcDate.unique()
+        return self.repository.calcDate.astype(int).unique()
 
     def apply_dates(self):
-        return self.repository.applyDate.unique()
+        return self.repository.applyDate.astype(int).unique()
 
     def fetch_values_from_repo(self, date, dateType='apply_date', fields=None):
         if dateType.lower() == 'apply_date':
