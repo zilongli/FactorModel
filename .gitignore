@@ -1,0 +1,7 @@
+# top directory only
+.idea/*
+*.pyc
+data/*
+*.csv
+FactorModel/notebooks/*
+notebooks/*
