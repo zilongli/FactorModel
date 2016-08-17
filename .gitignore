@@ -1,4 +1,5 @@
 # top directory only
+build/*
 .idea/*
 *.pyc
 data/*
