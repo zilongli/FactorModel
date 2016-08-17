@@ -7,16 +7,9 @@ Created on 2016-5-6
 
 import logging
 import functools
-import pymssql
 import pandas as pd
 import numpy as np
 import h5py
-
-
-mf_config = {'host': '10.63.6.219', 'user': 'sa',
-             'pwd': 'A12345678!', 'db': 'MultiFactor'}
-pm_config = {'host': '10.63.6.219', 'user': 'sa',
-             'pwd': 'A12345678!', 'db': 'PortfolioManagements'}
 
 
 def load_mat(file_path):
@@ -45,16 +38,6 @@ def list_to_str(names):
     return ','.join(names)
 
 
-def create_factor_list(config, table):
-    engine = create_conn(config)
-    sql = "SELECT [COLUMN_NAME] FROM INFORMATION_SCHEMA.COLUMNS " \
-          "WHERE TABLE_NAME = '{table}'".format(table=table)
-
-    df = pd.read_sql(sql, engine)
-    df.columns = ['factor']
-    return df.factor
-
-
 def format_date_to_index(df, col_name, formater='%Y%m%d'):
     df[col_name] = pd.to_datetime(df[col_name], format=formater)
     df.set_index(col_name, drop=True, inplace=True)
@@ -78,10 +61,6 @@ def merger(left, right, how='inner', to_replace=None):
     if to_replace:
         df.replace(to_replace, inplace=True)
     return df
-
-
-def create_conn(config):
-    return pymssql.connect(config['host'], config['user'], config['pwd'], config['db'], charset='utf8')
 
 
 # exception catching stuff
