@@ -25,7 +25,7 @@ class PnLAnalyser(object):
         self.report = return_table
         return return_table.copy()
 
-    def show(self):
+    def plot(self):
         self.report.cumsum().plot()
 
 
@@ -50,5 +50,5 @@ if __name__ == "__main__":
 
     analysor = PnLAnalyser()
     returns = analysor.calculate(env, df)
-    analysor.show()
+    analysor.plot()
     plt.show()

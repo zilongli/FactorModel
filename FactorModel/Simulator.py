@@ -80,6 +80,7 @@ class InfoKeeper(object):
         if series_list:
             res = pd.concat(series_list, axis=1, join='outer')
             res.set_axis(axis=1, labels=self.labels)
+            res = res.reset_index(1).rename(columns={'level_1':'code'})
         else:
             res = pd.DataFrame()
         return res
@@ -88,7 +89,7 @@ class InfoKeeper(object):
 if __name__ == "__main__":
 
     from FactorModel.utilities import load_mat
-    df = load_mat("d:/data.mat", rows=None)
+    df = load_mat("d:/data.mat", rows=220000)
     env = Env(df)
     trainer = ERModelTrainer(250, 1, 10)
     trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)
