@@ -12,10 +12,10 @@ import numpy as np
 import h5py
 
 
-def load_mat(file_path):
+def load_mat(file_path, rows=None):
     f = h5py.File(file_path)
-    col_data = f.get('cols')[:][0]
-    def read_cols(col_data):
+
+    def read_cols():
         headers = []
         for ref in f.get('cols')[:][:]:
             obj = f[ref[0]]
@@ -23,9 +23,11 @@ def load_mat(file_path):
             headers.append(head)
         return headers
 
-    headers = read_cols(col_data)
-    df = pd.DataFrame(f.get('data')[:].T,
-    columns=headers)
+    headers = read_cols()
+    df = pd.DataFrame(data=f.get('data')[:, :rows].T,
+                      columns=headers)
+    format_date_to_index(df, 'applyDate', as_index=True)
+    format_date_to_index(df, 'calcDate')
     return df
 
 
@@ -38,9 +40,10 @@ def list_to_str(names):
     return ','.join(names)
 
 
-def format_date_to_index(df, col_name, formater='%Y%m%d'):
+def format_date_to_index(df, col_name, formater='%Y%m%d', as_index=False):
     df[col_name] = pd.to_datetime(df[col_name], format=formater)
-    df.set_index(col_name, drop=True, inplace=True)
+    if as_index:
+        df.set_index(col_name, drop=False, inplace=True)
     return df
 
 

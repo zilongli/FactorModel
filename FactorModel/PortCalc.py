@@ -7,23 +7,26 @@ Created on 2016-8-16
 
 import numpy as np
 
+
 class PortCalc(object):
 
     def __init__(self):
         pass
 
     def trade(self, er_table):
-        level = np.percentile(er_table['er'], 100. * (len(er_table)  - 100) / len(er_table))
-        er_table['weight'] = 0.
-        flags = er_table['er'] >= level
-        active_assets = sum(flags)
-        er_table.loc[er_table['er'] >= level, 'weight'] = 1.0 / active_assets
+        total_assets = len(er_table)
+        level = np.percentile(er_table['er'], 100. * (total_assets - 100) / total_assets)
+        flags = np.array(er_table['er'] >= level)
+        active_assets = np.sum(flags)
+
+        weights = np.zeros(total_assets)
+        weights[flags] = 1.0 / active_assets
+
+        er_table['weight'] = weights
         return er_table
 
 
 if __name__ == "__main__":
-
-    import numpy as np
     import pandas as pd
 
     er = np.random.randn(800)

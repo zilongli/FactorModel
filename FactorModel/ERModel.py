@@ -8,6 +8,7 @@ Created on 2016-8-16
 import bisect
 import numpy as np
 import pandas as pd
+from pandas.tseries.offsets import Day
 
 
 class ERModelTrainer(object):
@@ -16,6 +17,7 @@ class ERModelTrainer(object):
         self.win_size = win_size
         self.periods = periods
         self.decay = decay
+        self.models = None
         self.yield_name = 'D' + str(self.decay) + 'Res'
 
     def fetch_model(self, date):
@@ -33,32 +35,30 @@ class ERModelTrainer(object):
         calc_dates = train_data.calcDate.unique()
         model_data = self._calc_model_dates(apply_dates, calc_dates)
 
-        train_data = train_data[['applyDate', self.yield_name, *factors]]
+        train_data = train_data[[self.yield_name, *factors]]
+        time_line = train_data.index
         train_data = train_data.as_matrix()
 
         model_data['model'] = None
         for i in range(len(model_data)):
             dates = model_data.iloc[i, :]
-            model = self._train(dates, factors, train_data)
+            model = self._train(dates, time_line, train_data)
             model_data.loc[dates.name, 'model'] = model
         self.models = model_data
 
-
-    def _train(self, model_dates, factors, train_data):
+    def _train(self, model_dates, time_line, train_data):
         train_start_date = model_dates.trainStart
         train_end_date = model_dates.trainEnd
 
-        index = train_data[:, 0]
-        left = bisect.bisect_left(index, train_start_date)
-        right = bisect.bisect_left(index, train_end_date + 1)
+        left = bisect.bisect_left(time_line, train_start_date)
+        right = bisect.bisect_left(time_line, train_end_date)
 
-        Y = train_data[left:right, 1]
-        X = train_data[left:right, 2:]
+        Y = train_data[left:right, 0]
+        X = train_data[left:right, 1:]
 
         model = ERModel()
         model.fit(X, Y)
         return model
-
 
     def _calc_model_dates(self, apply_dates, calc_dates):
         model_dates = []
@@ -67,7 +67,7 @@ class ERModelTrainer(object):
         train_end_dates = []
 
         for i, apply_date in enumerate(apply_dates):
-            factor_end = i - self.decay - 1
+            factor_end = i - self.decay
             factor_start = i - self.win_size - self.decay
             if factor_start >= 0 and factor_start % self.periods == 0:
                 model_dates.append(apply_date)
@@ -77,7 +77,6 @@ class ERModelTrainer(object):
 
         data = np.array([model_calc_dates, train_start_dates, train_end_dates]).T
         return pd.DataFrame(data=data,
-                            dtype=int,
                             columns=['calcDate', 'trainStart', 'trainEnd'],
                             index=model_dates)
 
@@ -86,12 +85,13 @@ class ERModel(object):
 
     def __init__(self, model_type='ols'):
         self.model_type = model_type
+        self.model_params = None
 
     def fit(self, X, Y):
         if self.model_type.lower() == 'ols':
             self.model_params = np.linalg.lstsq(X, Y)[0]
 
-    def calculateER(self, factor_values):
+    def calculate_er(self, factor_values):
         return factor_values @ self.model_params
 
 

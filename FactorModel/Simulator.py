@@ -7,6 +7,7 @@ Created on 2016-8-16
 
 import pandas as pd
 
+
 class Simulator(object):
 
     def __init__(self, env, model_factory, port_calc):
@@ -20,25 +21,25 @@ class Simulator(object):
         calc_dates = self.env.calc_dates()
 
         for i, apply_date in enumerate(apply_dates):
+            print(apply_date)
             thisData = self.env.fetch_values_from_repo(apply_date)
             codes = thisData.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
             if not model.empty:
                 factor_values = thisData[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
-                er = model.model.calculateER(factor_values)
+                er = model.model.calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
                 positions = self.port_calc.trade(er_table)
-                self.log_info(apply_date, calc_dates[i], codes, positions)
+                self.log_info(apply_date, calc_dates[i], positions)
 
-
-    def log_info(self, apply_date, calc_date, codes, positions):
-        for c in codes:
-            self.info_keeper.attach(apply_date, c, 'calcDate', calc_date)
+    def log_info(self, apply_date, calc_date, positions):
+        codes = positions.index
+        apply_dates = [apply_date] * len(codes)
+        calc_dates = [calc_date] * len(codes)
+        self.info_keeper.attach_list(apply_dates, codes, 'calcDate', calc_dates)
         for col in positions:
             to_store = positions[col]
-            for c, v in to_store.iteritems():
-                self.info_keeper.attach(apply_date, c, col, v)
-
+            self.info_keeper.attach_list(apply_dates, codes, col, list(to_store.values))
 
 
 class InfoKeeper(object):
@@ -56,6 +57,14 @@ class InfoKeeper(object):
         self.info[label][1].append(code)
         self.info[label][2].append(value)
 
+    def attach_list(self, datetimes, codes, label, values):
+        if label not in self.info:
+            self.info[label] = ([], [], [])
+            self.labels.append(label)
+        self.info[label][0].extend(datetimes)
+        self.info[label][1].extend(codes)
+        self.info[label][2].extend(values)
+
     def view(self):
         series_list = []
         for s in self.labels:
@@ -71,11 +80,14 @@ class InfoKeeper(object):
 
 
 if __name__ == "__main__":
-    from utilities import load_mat
-    from Env import Env
-    from ERModel import ERModelTrainer
-    from PortCalc import PortCalc
-    df = load_mat("d:/data.mat")#[:220000]
+    import sys
+    sys.path.append(r'D:\GitHub\wegamekinglc\FactorModels')
+
+    from FactorModel.utilities import load_mat
+    from FactorModel.Env import Env
+    from FactorModel.ERModel import ERModelTrainer
+    from FactorModel.PortCalc import PortCalc
+    df = load_mat("d:/data.mat", rows=None)
     env = Env(df)
     trainer = ERModelTrainer(250, 1, 10)
     trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)
