@@ -1,5 +1,7 @@
 # top directory only
 build/*
+dist/*
+FactorModel.egg-info/*
 .idea/*
 *.pyc
 data/*
