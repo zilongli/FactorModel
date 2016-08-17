@@ -3,5 +3,6 @@
 *.pyc
 data/*
 *.csv
+*.log
 FactorModel/notebooks/*
 notebooks/*
