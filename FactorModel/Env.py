@@ -12,7 +12,7 @@ import pandas as pd
 
 class Env(object):
 
-    def __init__(self, repository: pd.DataFrame) -> None:
+    def __init__(self, repository: pd.DataFrame):
         self.repository = repository
 
     def calc_dates(self) -> List[pd.Timestamp]:

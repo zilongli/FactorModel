@@ -94,6 +94,3 @@ class ERModelTrainer(object):
         return pd.DataFrame(data=data,
                             columns=['calcDate', 'trainStart', 'trainEnd'],
                             index=model_dates)
-
-
-

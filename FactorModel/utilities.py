@@ -28,8 +28,10 @@ def load_mat(file_path: str, rows: Optional[int] =None) -> pd.DataFrame:
     headers = read_cols()
     df = pd.DataFrame(data=f.get('data')[:, :rows].T,
                       columns=headers)
-    format_date_to_index(df, 'applyDate', as_index=True)
+    format_date_to_index(df, 'applyDate')
     format_date_to_index(df, 'calcDate')
+    df['code'] = df['code'].astype(int)
+    df.set_index(['applyDate'], drop=False, inplace=True)
     return df
 
 

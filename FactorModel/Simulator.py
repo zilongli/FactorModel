@@ -21,7 +21,7 @@ class Simulator(object):
         self.port_calc = port_calc
         self.info_keeper = InfoKeeper()
 
-    def simulate(self) -> None:
+    def simulate(self) -> pd.DataFrame:
         apply_dates = self.env.apply_dates()
         calc_dates = self.env.calc_dates()
 
@@ -35,6 +35,8 @@ class Simulator(object):
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
                 positions = self.port_calc.trade(er_table)
                 self.log_info(apply_date, calc_dates[i], positions)
+
+        return self.info_keeper.view()
 
     def log_info(self, apply_date: pd.Timestamp, calc_date: pd.Timestamp, positions: pd.DataFrame) -> None:
         codes = positions.index
