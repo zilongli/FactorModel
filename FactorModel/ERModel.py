@@ -6,21 +6,35 @@ Created on 2016-8-16
 """
 
 import bisect
+from typing import List
 import numpy as np
 import pandas as pd
-from pandas.tseries.offsets import Day
+
+
+class ERModel(object):
+
+    def __init__(self, model_type: str = 'ols') -> None:
+        self.model_type = model_type
+        self.model_params = None
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        if self.model_type.lower() == 'ols':
+            self.model_params = np.linalg.lstsq(x, y)[0]
+
+    def calculate_er(self, factor_values: np.ndarray) -> np.ndarray:
+        return factor_values @ self.model_params
 
 
 class ERModelTrainer(object):
 
-    def __init__(self, win_size, periods, decay):
+    def __init__(self, win_size: int, periods: int, decay: int) -> None:
         self.win_size = win_size
         self.periods = periods
         self.decay = decay
         self.models = None
         self.yield_name = 'D' + str(self.decay) + 'Res'
 
-    def fetch_model(self, date):
+    def fetch_model(self, date: pd.Timestamp) -> pd.Series:
         i = bisect.bisect_left(self.models.index, date)
         if self.models.index[i] == date:
             return self.models.iloc[i, :]
@@ -30,37 +44,38 @@ class ERModelTrainer(object):
             else:
                 return pd.Series()
 
-    def train_models(self, factors, train_data):
+    def train_models(self, factors: List[str], train_data: pd.DataFrame) -> None:
         apply_dates = train_data.applyDate.unique()
         calc_dates = train_data.calcDate.unique()
         model_data = self._calc_model_dates(apply_dates, calc_dates)
 
         train_data = train_data[[self.yield_name, *factors]]
-        time_line = train_data.index
-        train_data = train_data.as_matrix()
 
         model_data['model'] = None
         for i in range(len(model_data)):
             dates = model_data.iloc[i, :]
-            model = self._train(dates, time_line, train_data)
+            model = self._train(dates, train_data)
             model_data.loc[dates.name, 'model'] = model
         self.models = model_data
 
-    def _train(self, model_dates, time_line, train_data):
+    def _train(self, model_dates: pd.Series, train_data: pd.DataFrame) -> ERModel:
         train_start_date = model_dates.trainStart
         train_end_date = model_dates.trainEnd
+
+        time_line = train_data.index
+        train_data = train_data.as_matrix()
 
         left = bisect.bisect_left(time_line, train_start_date)
         right = bisect.bisect_left(time_line, train_end_date)
 
-        Y = train_data[left:right, 0]
-        X = train_data[left:right, 1:]
+        y = train_data[left:right, 0]
+        x = train_data[left:right, 1:]
 
         model = ERModel()
-        model.fit(X, Y)
+        model.fit(x, y)
         return model
 
-    def _calc_model_dates(self, apply_dates, calc_dates):
+    def _calc_model_dates(self, apply_dates: List[pd.Timestamp], calc_dates: List[pd.Timestamp]) -> pd.DataFrame:
         model_dates = []
         model_calc_dates = []
         train_start_dates = []
@@ -81,28 +96,4 @@ class ERModelTrainer(object):
                             index=model_dates)
 
 
-class ERModel(object):
 
-    def __init__(self, model_type='ols'):
-        self.model_type = model_type
-        self.model_params = None
-
-    def fit(self, X, Y):
-        if self.model_type.lower() == 'ols':
-            self.model_params = np.linalg.lstsq(X, Y)[0]
-
-    def calculate_er(self, factor_values):
-        return factor_values @ self.model_params
-
-
-if __name__ == "__main__":
-    from utilities import load_mat
-    from Env import Env
-    import mkl
-    mkl.set_num_threads(4)
-    df = load_mat("d:/data.mat")
-    calc_dates = df.calcDate.unique()
-    apply_dates = df.applyDate.unique()
-
-    model_trainer = ERModelTrainer(250, 1, 10)
-    model_trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)

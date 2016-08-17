@@ -5,14 +5,16 @@ Created on 2016-5-6
 @author: cheng.li
 """
 
+from typing import Optional
+from typing import List
+from typing import Any
 import logging
-import functools
 import pandas as pd
 import numpy as np
 import h5py
 
 
-def load_mat(file_path, rows=None):
+def load_mat(file_path: str, rows: Optional[int] =None) -> pd.DataFrame:
     f = h5py.File(file_path)
 
     def read_cols():
@@ -31,28 +33,34 @@ def load_mat(file_path, rows=None):
     return df
 
 
-def py_assert(cond, exep_type, msg):
+def py_assert(cond: bool, exep_type: Any, msg: str) -> None:
     if not cond:
         raise exep_type(msg)
 
 
-def list_to_str(names):
+def list_to_str(names: List[str]) -> str:
     return ','.join(names)
 
 
-def format_date_to_index(df, col_name, formater='%Y%m%d', as_index=False):
+def format_date_to_index(df: pd.DataFrame,
+                         col_name: str,
+                         formater: Optional[str]='%Y%m%d',
+                         as_index: Optional[bool]=False) -> pd.DataFrame:
     df[col_name] = pd.to_datetime(df[col_name], format=formater)
     if as_index:
         df.set_index(col_name, drop=False, inplace=True)
     return df
 
 
-def format_codes(df):
+def format_codes(df: pd.DataFrame) -> pd.DataFrame:
     df.code = df.code.apply(lambda x: "{0:06d}".format(x))
     return df
 
 
-def merger(left, right, how='inner', to_replace=None):
+def merger(left: pd.DataFrame,
+           right: pd.DataFrame,
+           how: Optional[str]='inner',
+           to_replace: Optional[dict]=None) -> pd.DataFrame:
     left_on = [np.array(left.index), left.code]
     right_on = [np.array(right.index), right.code]
 
@@ -67,7 +75,7 @@ def merger(left, right, how='inner', to_replace=None):
 
 
 # exception catching stuff
-def create_logger():
+def create_logger() -> logging.Logger:
     """
     Creates a logging object and returns it
     """

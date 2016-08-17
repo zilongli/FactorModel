@@ -5,6 +5,7 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
+import pandas as pd
 import numpy as np
 
 
@@ -13,21 +14,22 @@ class PortCalc(object):
     def __init__(self):
         pass
 
-    def trade(self, er_table):
-        total_assets = len(er_table)
-        level = np.percentile(er_table['er'], 100. * (total_assets - 100) / total_assets)
-        flags = np.array(er_table['er'] >= level)
+    def trade(self, er_table: pd.DataFrame) -> pd.DataFrame:
+        rtntable = er_table.copy(deep=True)
+
+        total_assets = len(rtntable)
+        level = np.percentile(rtntable['er'], 100. * (total_assets - 100) / total_assets)
+        flags = np.array(rtntable['er'] >= level)
         active_assets = np.sum(flags)
 
         weights = np.zeros(total_assets)
         weights[flags] = 1.0 / active_assets
 
-        er_table['weight'] = weights
-        return er_table
+        rtntable['weight'] = weights
+        return rtntable
 
 
 if __name__ == "__main__":
-    import pandas as pd
 
     er = np.random.randn(800)
     codes = range(800)

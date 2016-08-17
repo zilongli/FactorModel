@@ -5,34 +5,38 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
+from typing import List
+from typing import Any
 import pandas as pd
+from FactorModel.Env import Env
+from FactorModel.ERModel import ERModelTrainer
+from FactorModel.PortCalc import PortCalc
 
 
 class Simulator(object):
 
-    def __init__(self, env, model_factory, port_calc):
+    def __init__(self, env: Env, model_factory: ERModelTrainer, port_calc: PortCalc) -> None:
         self.model_factory = model_factory
         self.env = env
         self.port_calc = port_calc
         self.info_keeper = InfoKeeper()
 
-    def simulate(self):
+    def simulate(self) -> None:
         apply_dates = self.env.apply_dates()
         calc_dates = self.env.calc_dates()
 
         for i, apply_date in enumerate(apply_dates):
-            print(apply_date)
-            thisData = self.env.fetch_values_from_repo(apply_date)
-            codes = thisData.code.astype(int)
+            this_data = self.env.fetch_values_from_repo(apply_date)
+            codes = this_data.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
             if not model.empty:
-                factor_values = thisData[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
+                factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
                 er = model.model.calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
                 positions = self.port_calc.trade(er_table)
                 self.log_info(apply_date, calc_dates[i], positions)
 
-    def log_info(self, apply_date, calc_date, positions):
+    def log_info(self, apply_date: pd.Timestamp, calc_date: pd.Timestamp, positions: pd.DataFrame) -> None:
         codes = positions.index
         apply_dates = [apply_date] * len(codes)
         calc_dates = [calc_date] * len(codes)
@@ -48,7 +52,7 @@ class InfoKeeper(object):
         self.info = {}
         self.labels = []
 
-    def attach(self, datetime, code, label, value):
+    def attach(self, datetime: pd.Timestamp, code: List[int], label: str, value: Any) -> None:
         if label not in self.info:
             self.info[label] = ([], [], [])
             self.labels.append(label)
@@ -57,7 +61,7 @@ class InfoKeeper(object):
         self.info[label][1].append(code)
         self.info[label][2].append(value)
 
-    def attach_list(self, datetimes, codes, label, values):
+    def attach_list(self, datetimes: List[pd.Timestamp], codes: List[int], label: str, values: List[Any]) -> None:
         if label not in self.info:
             self.info[label] = ([], [], [])
             self.labels.append(label)
@@ -65,7 +69,7 @@ class InfoKeeper(object):
         self.info[label][1].extend(codes)
         self.info[label][2].extend(values)
 
-    def view(self):
+    def view(self) -> pd.DataFrame:
         series_list = []
         for s in self.labels:
             series = pd.Series(self.info[s][2], index=[self.info[s][0], self.info[s][1]])
@@ -80,13 +84,8 @@ class InfoKeeper(object):
 
 
 if __name__ == "__main__":
-    import sys
-    sys.path.append(r'D:\GitHub\wegamekinglc\FactorModels')
 
     from FactorModel.utilities import load_mat
-    from FactorModel.Env import Env
-    from FactorModel.ERModel import ERModelTrainer
-    from FactorModel.PortCalc import PortCalc
     df = load_mat("d:/data.mat", rows=None)
     env = Env(df)
     trainer = ERModelTrainer(250, 1, 10)
