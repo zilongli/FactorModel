@@ -26,20 +26,21 @@ class PortCalc(object):
             rtntable['todayHolding'] = 0.
             rtntable['todayHolding'] = pre_holding['todayHolding']
 
-            er = rtntable['er']
-            today_holding = rtntable['todayHolding']
+            sell_candiates = np.array((rtntable['er'] <= 0.) & (rtntable['todayHolding'] > 0.))
+            buy_candidates = np.array((rtntable['er'] >= level) & (rtntable['todayHolding'] == 0.))
+            filter_table = rtntable[buy_candidates].sort_values('er', ascending=False)
+            filter_table['todayHolding'] = 0.
 
-            sell_candiates = np.array((er <= 0.) & (today_holding > 0.))
-            buy_candidates = np.array((er >= level) & (today_holding == 0.))
-            filter_table = er[buy_candidates].sort_values(ascending=False)
-
-            total_sell_position = np.sum(today_holding[sell_candiates]) + max(1. - np.sum(today_holding), 0.)
+            total_sell_position = np.sum(rtntable.loc[sell_candiates, 'todayHolding']) + max(1.0 - np.sum(rtntable['todayHolding']), 0.)
             if total_sell_position == 0:
                 return rtntable
 
             rtntable.loc[sell_candiates, 'todayHolding'] = 0.
-            to_buy_in = min(math.ceil(total_sell_position / .01), len(filter_table))
-            rtntable.loc[filter_table.index[0:to_buy_in], 'todayHolding'] = total_sell_position / to_buy_in
+            to_buy_in = min(math.ceil(total_sell_position / 0.01), len(filter_table))
+
+            filter_table['todayHolding'][0:to_buy_in] = total_sell_position / to_buy_in
+
+            rtntable.loc[filter_table.index, 'todayHolding'] = filter_table['todayHolding'].values
         else:
             flags = np.array(rtntable['er'] >= level)
             active_assets = np.sum(flags)
