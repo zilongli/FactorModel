@@ -25,6 +25,8 @@ class Simulator(object):
         apply_dates = self.env.apply_dates()
         calc_dates = self.env.calc_dates()
 
+        pre_holding = pd.DataFrame()
+
         for i, apply_date in enumerate(apply_dates):
             this_data = self.env.fetch_values_from_repo(apply_date)
             codes = this_data.code.astype(int)
@@ -33,8 +35,15 @@ class Simulator(object):
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
                 er = model.model.calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                positions = self.port_calc.trade(er_table)
+                positions = self.port_calc.trade(er_table, pre_holding)
+                if not pre_holding.empty:
+                    positions['preHolding'] = pre_holding['todayHolding']
+                    positions.fillna(0., inplace=True)
+                else:
+                    positions['preHolding'] = 0.0
                 self.log_info(apply_date, calc_dates[i], positions)
+
+                pre_holding = positions[['todayHolding']]
 
         return self.info_keeper.view()
 
