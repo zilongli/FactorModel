@@ -47,16 +47,14 @@ def list_to_str(names: List[str]) -> str:
 def format_date_to_index(df: pd.DataFrame,
                          col_name: str,
                          formater: Optional[str]='%Y%m%d',
-                         as_index: Optional[bool]=False) -> pd.DataFrame:
+                         as_index: Optional[bool]=False) -> None:
     df[col_name] = pd.to_datetime(df[col_name], format=formater)
     if as_index:
         df.set_index(col_name, drop=False, inplace=True)
-    return df
 
 
-def format_codes(df: pd.DataFrame) -> pd.DataFrame:
+def format_codes(df: pd.DataFrame) -> None:
     df.code = df.code.apply(lambda x: "{0:06d}".format(x))
-    return df
 
 
 def merger(left: pd.DataFrame,

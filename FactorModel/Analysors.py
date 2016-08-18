@@ -29,11 +29,13 @@ class PnLAnalyser(object):
             everyday_return.append(this_day_return)
             everyday_tc.append(this_day_tc)
             everyday_return_after_tc.append(this_day_return - this_day_tc)
-        return_table = pd.DataFrame(np.array([everyday_return, everyday_return_after_tc, everyday_tc]).T, index=all_dates, columns=['pnl', 'pnl - tc', 'tc'])
+        return_table = pd.DataFrame(data=np.array([everyday_return, everyday_return_after_tc, everyday_tc]).T,
+                                    index=all_dates,
+                                    columns=['pnl', 'pnl - tc', 'tc'])
         self.report = return_table
         return return_table.copy()
 
-    def plot(self) -> None: 
+    def plot(self) -> None:
         self.report.cumsum().plot()
 
 
@@ -45,7 +47,7 @@ if __name__ == "__main__":
 
     import seaborn as sns
     from matplotlib import pyplot as plt
-    sns.set_style('whitegrid')
+    sns.set_style('ticks')
 
     df = load_mat("d:/data.mat", rows=None)
     env = Env(df)
@@ -58,4 +60,4 @@ if __name__ == "__main__":
     analysor = PnLAnalyser()
     returns = analysor.calculate(env, df)
     analysor.plot()
-    plt.show()
+    #plt.show()

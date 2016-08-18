@@ -15,7 +15,7 @@ from FactorModel.PortCalc import PortCalc
 
 class Simulator(object):
 
-    def __init__(self, env: Env, model_factory: ERModelTrainer, port_calc: PortCalc) -> None:
+    def __init__(self, env: Env, model_factory: ERModelTrainer, port_calc: PortCalc):
         self.model_factory = model_factory
         self.env = env
         self.port_calc = port_calc

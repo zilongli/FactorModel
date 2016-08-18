@@ -13,7 +13,7 @@ import pandas as pd
 
 class ERModel(object):
 
-    def __init__(self, model_type: str = 'ols') -> None:
+    def __init__(self, model_type: str = 'ols'):
         self.model_type = model_type
         self.model_params = None
 
