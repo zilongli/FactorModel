@@ -41,7 +41,7 @@ class PnLAnalyser(object):
 
 if __name__ == "__main__":
     from FactorModel.utilities import load_mat
-    from FactorModel.PortCalc import PortCalc
+    from FactorModel.PortCalc import RankPortCalc
     from FactorModel.ERModel import ERModelTrainer
     from FactorModel.Simulator import Simulator
 
@@ -51,13 +51,13 @@ if __name__ == "__main__":
 
     df = load_mat("d:/data.mat", rows=None)
     env = Env(df)
-    trainer = ERModelTrainer(250, 1, 10)
+    trainer = ERModelTrainer(250, 10, 10)
     trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)
-    port_calc = PortCalc()
+    port_calc = RankPortCalc()
     simulator = Simulator(env, trainer, port_calc)
     df = simulator.simulate()
 
     analysor = PnLAnalyser()
     returns = analysor.calculate(env, df)
     analysor.plot()
-    #plt.show()
+    plt.show()

@@ -45,64 +45,42 @@ class Simulator(object):
 
                 pre_holding = positions[['todayHolding']]
 
-        return self.info_keeper.view()
+        return self.info_keeper.info_view()
 
-    def log_info(self, apply_date: pd.Timestamp, calc_date: pd.Timestamp, positions: pd.DataFrame) -> None:
-        codes = positions.index
-        apply_dates = [apply_date] * len(codes)
-        calc_dates = [calc_date] * len(codes)
-        self.info_keeper.attach_list(apply_dates, codes, 'calcDate', calc_dates)
-        for col in positions:
-            to_store = positions[col]
-            self.info_keeper.attach_list(apply_dates, codes, col, list(to_store.values))
+    def log_info(self, apply_date: pd.Timestamp, calc_date: pd.Timestamp, data: pd.DataFrame) -> None:
+        plain_data = data.reset_index()
+        plain_data.index = [apply_date] * len(plain_data)
+        plain_data.rename(columns={'level_1': 'code'}, inplace=True)
+        plain_data['calcDate'] = [calc_date] * len(plain_data)
+        self.info_keeper.attach_info(plain_data)
 
 
 class InfoKeeper(object):
 
     def __init__(self):
-        self.info = {}
-        self.labels = []
+        self.data_sets = []
+        self.stored_data = pd.DataFrame()
+        self.current_index = 0
 
-    def attach(self, datetime: pd.Timestamp, code: List[int], label: str, value: Any) -> None:
-        if label not in self.info:
-            self.info[label] = ([], [], [])
-            self.labels.append(label)
+    def attach_info(self, appended_data: pd.DataFrame) -> None:
+        self.data_sets.append(appended_data)
 
-        self.info[label][0].append(datetime)
-        self.info[label][1].append(code)
-        self.info[label][2].append(value)
-
-    def attach_list(self, datetimes: List[pd.Timestamp], codes: List[int], label: str, values: List[Any]) -> None:
-        if label not in self.info:
-            self.info[label] = ([], [], [])
-            self.labels.append(label)
-        self.info[label][0].extend(datetimes)
-        self.info[label][1].extend(codes)
-        self.info[label][2].extend(values)
-
-    def view(self) -> pd.DataFrame:
-        series_list = []
-        for s in self.labels:
-            series = pd.Series(self.info[s][2], index=[self.info[s][0], self.info[s][1]])
-            series_list.append(series)
-
-        if series_list:
-            res = pd.concat(series_list, axis=1, join='outer')
-            res.set_axis(axis=1, labels=self.labels)
-            res = res.reset_index(1).rename(columns={'level_1':'code'})
-        else:
-            res = pd.DataFrame()
-        return res
+    def info_view(self) -> pd.DataFrame:
+        if self.current_index < len(self.data_sets):
+            self.stored_data = self.stored_data.append(self.data_sets[self.current_index:])
+            self.current_index = len(self.data_sets)
+        return self.stored_data.copy(deep=True)
 
 
 if __name__ == "__main__":
 
     from FactorModel.utilities import load_mat
+    from FactorModel.PortCalc import ThresholdPortCalc, RankPortCalc
     df = load_mat("d:/data.mat", rows=220000)
     env = Env(df)
     trainer = ERModelTrainer(250, 1, 10)
     trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)
-    port_calc = PortCalc()
+    port_calc = RankPortCalc()
     simulator = Simulator(env, trainer, port_calc)
-    simulator.simulate()
-    print(simulator.info_keeper.view())
+    df = simulator.simulate()
+    print(df)
