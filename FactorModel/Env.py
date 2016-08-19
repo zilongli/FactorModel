@@ -33,7 +33,8 @@ class Env(object):
         elif date_type.lower() == 'calc_date':
             flags = self.repository.calcDate == date
         else:
-            raise ValueError("{date_type} is not recognized.".format(date_type=date_type))
+            raise ValueError("{date_type} is not recognized."
+                             .format(date_type=date_type))
 
         if fields:
             return self.repository.loc[flags, fields]

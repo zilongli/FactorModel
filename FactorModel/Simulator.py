@@ -73,7 +73,6 @@ class InfoKeeper(object):
 
 
 if __name__ == "__main__":
-
     from FactorModel.utilities import load_mat
     from FactorModel.PortCalc import ThresholdPortCalc, RankPortCalc
     df = load_mat("d:/data.mat", rows=220000)

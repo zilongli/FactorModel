@@ -75,7 +75,9 @@ class ERModelTrainer(object):
         model.fit(x, y)
         return model
 
-    def _calc_model_dates(self, apply_dates: List[pd.Timestamp], calc_dates: List[pd.Timestamp]) -> pd.DataFrame:
+    def _calc_model_dates(self,
+                          apply_dates: List[pd.Timestamp],
+                          calc_dates: List[pd.Timestamp]) -> pd.DataFrame:
         model_dates = []
         model_calc_dates = []
         train_start_dates = []
