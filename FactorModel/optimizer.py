@@ -14,9 +14,11 @@ dir_name = os.path.dirname(sys.path[0])
 if sys.platform == "win32":
     alglib_dll_path = os.path.join(dir_name, 'lib/alglib.dll')
     optimizer_dll_path = os.path.join(dir_name, 'lib/optimizer.dll')
+    _ = CDLL(alglib_dll_path)
+    dll_handle = CDLL(optimizer_dll_path)
 else:
     optimizer_dll_path = os.path.join(dir_name, 'lib/liboptimizer.so')
-dll_handle = CDLL(optimizer_dll_path)
+    dll_handle = CDLL(optimizer_dll_path)
 
 
 def set_stop_condition(epsg,
