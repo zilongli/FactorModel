@@ -30,7 +30,6 @@ INDUSTRY_LIST = ['CommunicationsAndTransportation',
                  'Telecoms',
                  'ExtractiveIndustry',
                  'Metal',
-                 'Bank',
                  'NonBankFinancial',
                  'FoodAndBeverage']
 

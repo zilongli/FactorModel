@@ -15,7 +15,9 @@ class PnLAnalyser(object):
     def __init__(self):
         self.report = None
 
-    def calculate(self, env: Env, extra_data: pd.DataFrame) -> pd.DataFrame:
+    def calculate(self,
+                  env: Env,
+                  extra_data: pd.DataFrame) -> pd.DataFrame:
         all_dates = extra_data.index.get_level_values(0).unique()
         everyday_return = []
         everyday_return_after_tc = []
@@ -41,9 +43,9 @@ class PnLAnalyser(object):
 
 if __name__ == "__main__":
     from FactorModel.utilities import load_mat
-    from FactorModel.PortCalc import RankPortCalc
-    from FactorModel.ERModel import ERModelTrainer
-    from FactorModel.Simulator import Simulator
+    from FactorModel.portcalc import MeanVariancePortCalc
+    from FactorModel.ermodel import ERModelTrainer
+    from FactorModel.simulator import Simulator
 
     import seaborn as sns
     from matplotlib import pyplot as plt
@@ -51,9 +53,9 @@ if __name__ == "__main__":
 
     df = load_mat("d:/data.mat", rows=None)
     env = Env(df)
-    trainer = ERModelTrainer(250, 10, 10)
+    trainer = ERModelTrainer(250, 1, 10)
     trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)
-    port_calc = RankPortCalc()
+    port_calc = MeanVariancePortCalc('cost_budget', 2e-4)
     simulator = Simulator(env, trainer, port_calc)
     df = simulator.simulate()
 

@@ -53,3 +53,17 @@ int portfolioOptimizerWithTradingCostBudget(int size,
 	int* linearCondType,
 	double* targetWeight,
 	double* cost);
+
+int portfolioOptimizerWithTradingCostBudget2(int size,
+	double* covMatrix,
+	double* expectedReturn,
+	double* tradingCost,
+	double* currentWeight,
+	double bandWidth,
+	double* lowerBound,
+	double* upperBound,
+	int lcNumber,
+	double* linearCond,
+	int* linearCondType,
+	double* targetWeight,
+	double* cost);

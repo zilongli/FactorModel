@@ -44,7 +44,9 @@ class ERModelTrainer(object):
             else:
                 return pd.Series()
 
-    def train_models(self, factors: List[str], train_data: pd.DataFrame) -> None:
+    def train_models(self,
+                     factors: List[str],
+                     train_data: pd.DataFrame) -> None:
         apply_dates = train_data.applyDate.unique()
         calc_dates = train_data.calcDate.unique()
         model_data = self._calc_model_dates(apply_dates, calc_dates)
@@ -58,7 +60,9 @@ class ERModelTrainer(object):
             model_data.loc[dates.name, 'model'] = model
         self.models = model_data
 
-    def _train(self, model_dates: pd.Series, train_data: pd.DataFrame) -> ERModel:
+    def _train(self,
+               model_dates: pd.Series,
+               train_data: pd.DataFrame) -> ERModel:
         train_start_date = model_dates.trainStart
         train_end_date = model_dates.trainEnd
 

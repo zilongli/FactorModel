@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 u"""
 Created on 2016-5-17
 
@@ -177,14 +176,6 @@ def portfolio_optimizer_with_cost_buget(cov,
     return target_weight, cost
 
 
-class Constraints:
-    def __init__(self, lb, ub, lc, lct):
-        self.lb = lb
-        self.ub = ub
-        self.lc = lc
-        self.lct = lct
-
-
 def portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost', cost_buget=9999):
     if method == 'cost_budget':
         return portfolio_optimizer_with_cost_buget(cov,
@@ -220,7 +211,9 @@ def portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost', cost_bug
 
 if __name__ == "__main__":
 
-    df = 5000
+    from FactorModel.regulator import Constraints
+
+    df = 200
 
     er = np.random.randn(df) * 0.02
     cov = np.diag(np.abs(np.random.randn(df)) * 0.0004)

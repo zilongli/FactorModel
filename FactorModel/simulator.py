@@ -7,6 +7,7 @@ Created on 2016-8-16
 
 from typing import List
 from typing import Any
+import numpy as np
 import pandas as pd
 from FactorModel.env import Env
 from FactorModel.ermodel import ERModelTrainer
@@ -18,7 +19,10 @@ from FactorModel.facts import INDUSTRY_LIST
 
 class Simulator(object):
 
-    def __init__(self, env: Env, model_factory: ERModelTrainer, port_calc: PortCalc):
+    def __init__(self,
+                 env: Env,
+                 model_factory: ERModelTrainer,
+                 port_calc: PortCalc) -> None:
         self.model_factory = model_factory
         self.env = env
         self.port_calc = port_calc
@@ -32,15 +36,16 @@ class Simulator(object):
         pre_holding = pd.DataFrame()
 
         for i, apply_date in enumerate(apply_dates):
+            print(apply_date)
             this_data = self.env.fetch_values_from_repo(apply_date)
-            print(self.constraints_builder.build_constraints(this_data))
+            trading_constraints, _ = self.constraints_builder.build_constraints(this_data)
             codes = this_data.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
             if not model.empty:
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                positions = self.port_calc.trade(er_table, pre_holding)
+                positions = self.port_calc.trade(er_table, pre_holding, constraints=trading_constraints)
                 if not pre_holding.empty:
                     positions['preHolding'] = pre_holding['todayHolding']
                     positions.fillna(0., inplace=True)
@@ -52,7 +57,10 @@ class Simulator(object):
 
         return self.info_keeper.info_view()
 
-    def log_info(self, apply_date: pd.Timestamp, calc_date: pd.Timestamp, data: pd.DataFrame) -> None:
+    def log_info(self,
+                 apply_date: pd.Timestamp,
+                 calc_date: pd.Timestamp,
+                 data: pd.DataFrame) -> None:
         plain_data = data.reset_index()
         plain_data.index = [apply_date] * len(plain_data)
         plain_data.rename(columns={'level_1': 'code'}, inplace=True)
@@ -62,12 +70,13 @@ class Simulator(object):
 
 if __name__ == "__main__":
     from FactorModel.utilities import load_mat
-    from FactorModel.portcalc import ThresholdPortCalc, RankPortCalc
+    from FactorModel.portcalc import MeanVariancePortCalc
     df = load_mat("d:/data.mat", rows=220000)
     env = Env(df)
     trainer = ERModelTrainer(250, 1, 10)
     trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)
-    port_calc = RankPortCalc()
+    print(trainer.models)
+    port_calc = MeanVariancePortCalc('cost_budget', 2e-4)
     simulator = Simulator(env, trainer, port_calc)
     df = simulator.simulate()
     print(df)

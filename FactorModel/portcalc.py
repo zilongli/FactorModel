@@ -5,9 +5,11 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
+from typing import Optional
 import math
 import pandas as pd
 import numpy as np
+from FactorModel.optimizer import portfolio_optimizer
 
 
 class PortCalc(object):
@@ -16,19 +18,45 @@ class PortCalc(object):
 
 class MeanVariancePortCalc(PortCalc):
 
-    def __init__(self):
-        pass
+    def __init__(self, method: str, cost_buget: Optional[float]=9999.) -> None:
+        self.method = method
+        self.cost_buget = cost_buget
 
-    def trade(self, er_table: pd.DataFrame, pre_holding: pd.DataFrame) -> pd.DataFrame:
-        pass
-
+    def trade(self,
+              er_table: pd.DataFrame,
+              pre_holding: pd.DataFrame,
+              **kwargs) -> pd.DataFrame:
+        rtntable = er_table.copy(deep=True)
+        assets_number = len(er_table)
+        er = er_table['er'].values
+        cov = np.diag(0.0004 * np.ones(assets_number))
+        if not pre_holding.empty:
+            cw = pre_holding['todayHolding']
+            cost_buget = self.cost_buget
+        else:
+            cw = np.zeros(assets_number)
+            cost_buget = 9999.
+        tc = np.ones(assets_number) * 0.002
+        constraints = kwargs['constraints']
+        weights, cost = portfolio_optimizer(cov=cov,
+                                            er=er,
+                                            tc=tc,
+                                            cw=cw,
+                                            constraints=constraints,
+                                            method=self.method,
+                                            cost_buget=cost_buget)
+        rtntable['todayHolding'] = weights
+        return rtntable
 
 class RankPortCalc(PortCalc):
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def trade(self, er_table: pd.DataFrame, pre_holding: pd.DataFrame) -> pd.DataFrame:
+    def trade(self,
+              er_table: pd.DataFrame,
+              pre_holding: pd.DataFrame,
+              **kwargs) -> pd.DataFrame:
         rtntable = er_table.copy(deep=True)
 
         total_assets = len(rtntable)
@@ -72,10 +100,13 @@ class RankPortCalc(PortCalc):
 
 class ThresholdPortCalc(PortCalc):
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def trade(self, er_table: pd.DataFrame, pre_holding: pd.DataFrame) -> pd.DataFrame:
+    def trade(self,
+              er_table: pd.DataFrame,
+              pre_holding: pd.DataFrame,
+              **kwargs) -> pd.DataFrame:
         rtntable = er_table.copy(deep=True)
 
         total_assets = len(rtntable)
