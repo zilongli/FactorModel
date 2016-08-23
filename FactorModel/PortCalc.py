@@ -14,6 +14,15 @@ class PortCalc(object):
     pass
 
 
+class MeanVariancePortCalc(PortCalc):
+
+    def __init__(self):
+        pass
+
+    def trade(self, er_table: pd.DataFrame, pre_holding: pd.DataFrame) -> pd.DataFrame:
+        pass
+
+
 class RankPortCalc(PortCalc):
 
     def __init__(self):

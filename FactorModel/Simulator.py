@@ -8,9 +8,12 @@ Created on 2016-8-16
 from typing import List
 from typing import Any
 import pandas as pd
-from FactorModel.Env import Env
-from FactorModel.ERModel import ERModelTrainer
-from FactorModel.PortCalc import PortCalc
+from FactorModel.env import Env
+from FactorModel.ermodel import ERModelTrainer
+from FactorModel.portcalc import PortCalc
+from FactorModel.infokeeper import InfoKeeper
+from FactorModel.regulator import Regulator
+from FactorModel.facts import INDUSTRY_LIST
 
 
 class Simulator(object):
@@ -20,6 +23,7 @@ class Simulator(object):
         self.env = env
         self.port_calc = port_calc
         self.info_keeper = InfoKeeper()
+        self.constraints_builder = Regulator(INDUSTRY_LIST)
 
     def simulate(self) -> pd.DataFrame:
         apply_dates = self.env.apply_dates()
@@ -29,11 +33,12 @@ class Simulator(object):
 
         for i, apply_date in enumerate(apply_dates):
             this_data = self.env.fetch_values_from_repo(apply_date)
+            print(self.constraints_builder.build_constraints(this_data))
             codes = this_data.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
             if not model.empty:
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
-                er = model.model.calculate_er(factor_values)
+                er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
                 positions = self.port_calc.trade(er_table, pre_holding)
                 if not pre_holding.empty:
@@ -55,26 +60,9 @@ class Simulator(object):
         self.info_keeper.attach_info(plain_data)
 
 
-class InfoKeeper(object):
-
-    def __init__(self):
-        self.data_sets = []
-        self.stored_data = pd.DataFrame()
-        self.current_index = 0
-
-    def attach_info(self, appended_data: pd.DataFrame) -> None:
-        self.data_sets.append(appended_data)
-
-    def info_view(self) -> pd.DataFrame:
-        if self.current_index < len(self.data_sets):
-            self.stored_data = self.stored_data.append(self.data_sets[self.current_index:])
-            self.current_index = len(self.data_sets)
-        return self.stored_data.copy(deep=True)
-
-
 if __name__ == "__main__":
     from FactorModel.utilities import load_mat
-    from FactorModel.PortCalc import ThresholdPortCalc, RankPortCalc
+    from FactorModel.portcalc import ThresholdPortCalc, RankPortCalc
     df = load_mat("d:/data.mat", rows=220000)
     env = Env(df)
     trainer = ERModelTrainer(250, 1, 10)
