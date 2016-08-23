@@ -51,7 +51,7 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     sns.set_style('ticks')
 
-    df = load_mat("d:/data.mat", rows=None)
+    df = load_mat("/home/wegamekinglc/Downloads/data.mat", rows=None)
     env = Env(df)
     trainer = ERModelTrainer(250, 1, 10)
     trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)

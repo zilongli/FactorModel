@@ -10,9 +10,12 @@ from ctypes import *
 import numpy as np
 
 dir_name = os.path.dirname(sys.path[0])
-alglib_dll_path = os.path.join(dir_name, 'lib/alglib.dll')
-optimizer_dll_path = os.path.join(dir_name, 'lib/optimizer.dll')
-_ = CDLL(alglib_dll_path)
+
+if sys.platform == "win32":
+    alglib_dll_path = os.path.join(dir_name, 'lib/alglib.dll')
+    optimizer_dll_path = os.path.join(dir_name, 'lib/optimizer.dll')
+else:
+    optimizer_dll_path = os.path.join(dir_name, 'lib/liboptimizer.so')
 dll_handle = CDLL(optimizer_dll_path)
 
 
@@ -213,7 +216,7 @@ if __name__ == "__main__":
 
     from FactorModel.regulator import Constraints
 
-    df = 200
+    df = 1000
 
     er = np.random.randn(df) * 0.02
     cov = np.diag(np.abs(np.random.randn(df)) * 0.0004)
@@ -256,6 +259,6 @@ if __name__ == "__main__":
 
     start = dt.datetime.now()
     for i in range(reps):
-        cond = portfolio_optimizer(cov, er, tc, cw, constraints, method='cost_budget', cost_buget=0.0003)
+        cond = portfolio_optimizer(cov, er, tc, cw, constraints, method='cost_budget', cost_buget=9999)#0.0003)
     end = dt.datetime.now()
     print(end - start)

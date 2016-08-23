@@ -71,7 +71,7 @@ class Simulator(object):
 if __name__ == "__main__":
     from FactorModel.utilities import load_mat
     from FactorModel.portcalc import MeanVariancePortCalc
-    df = load_mat("d:/data.mat", rows=220000)
+    df = load_mat("/home/wegamekinglc/Downloads/data.mat", rows=220000)
     env = Env(df)
     trainer = ERModelTrainer(250, 1, 10)
     trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], df)
