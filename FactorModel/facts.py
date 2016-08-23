@@ -5,7 +5,7 @@ Created on 2016-5-23
 @author: cheng.li
 """
 
-INDUSTRY_LIST = ('CommunicationsAndTransportation',
+INDUSTRY_LIST = ['CommunicationsAndTransportation',
                  'LeisureServices',
                  'MultiMedia',
                  'PublicUtility',
@@ -32,8 +32,8 @@ INDUSTRY_LIST = ('CommunicationsAndTransportation',
                  'Metal',
                  'Bank',
                  'NonBankFinancial',
-                 'FoodAndBeverage')
+                 'FoodAndBeverage']
 
-STYLE_LIST = ('Size',)
+STYLE_LIST = ['Size']
 
 BENCHMARK = 'zz500'

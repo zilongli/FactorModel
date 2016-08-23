@@ -7,7 +7,7 @@ Created on 2016-8-17
 
 import numpy as np
 import pandas as pd
-from FactorModel.Env import Env
+from FactorModel.env import Env
 
 
 class PnLAnalyser(object):
