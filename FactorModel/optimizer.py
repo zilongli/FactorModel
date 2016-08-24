@@ -70,6 +70,13 @@ def argument_checker(cov,
     c_bndu = transform_pyarray_to_c_arr(bndu)
     c_lc = transform_pyarray_to_c_arr(lc)
     c_lct = transform_pyarray_to_c_arr(lct)
+
+    if not c_bndl:
+        c_bndl = transform_pyarray_to_c_arr(-np.ones(prob_size) * 1e15)
+
+    if not c_bndu:
+        c_bndu = transform_pyarray_to_c_arr(np.ones(prob_size) * 1e15)
+
     if c_lct:
         c_lcm = len(c_lct)
     else:
