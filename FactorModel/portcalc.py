@@ -5,8 +5,8 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
-from typing import Optional
 import math
+from typing import Optional
 import pandas as pd
 import numpy as np
 from FactorModel.optimizer import portfolio_optimizer

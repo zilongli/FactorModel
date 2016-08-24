@@ -10,7 +10,7 @@ import pandas as pd
 
 class InfoKeeper(object):
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.data_sets = []
         self.stored_data = pd.DataFrame()
         self.current_index = 0

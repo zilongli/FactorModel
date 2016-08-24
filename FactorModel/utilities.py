@@ -120,13 +120,3 @@ def exception(logger):
         return wrapper
     return decorator
 
-if __name__ == "__main__":
-    import datetime as dt
-
-    df = load_mat('d:/data.mat')
-    calcDates = df.calcDate.unique()
-
-    start = dt.datetime.now()
-    for calcDate in calcDates:
-        df.loc[df.calcDate == calcDate, :]
-    print(dt.datetime.now() - start)
