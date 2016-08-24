@@ -7,6 +7,7 @@ Created on 2016-8-22
 
 import pandas as pd
 
+
 class InfoKeeper(object):
 
     def __init__(self):

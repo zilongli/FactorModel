@@ -5,9 +5,6 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
-from typing import List
-from typing import Any
-import numpy as np
 import pandas as pd
 from FactorModel.env import Env
 from FactorModel.ermodel import ERModelTrainer

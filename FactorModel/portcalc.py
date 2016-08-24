@@ -48,6 +48,7 @@ class MeanVariancePortCalc(PortCalc):
         rtntable['todayHolding'] = weights
         return rtntable
 
+
 class RankPortCalc(PortCalc):
 
     def __init__(self) -> None:

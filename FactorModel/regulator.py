@@ -6,7 +6,6 @@ Created on 2016-8-22
 """
 
 from typing import Tuple
-from typing import Any
 from typing import List
 import numpy as np
 import pandas as pd
