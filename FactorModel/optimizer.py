@@ -4,22 +4,14 @@ Created on 2016-5-17
 @author: cheng.li
 """
 
-import os
 import sys
 from ctypes import *
 import numpy as np
 
-dir_name = os.path.dirname(__file__)
-
 if sys.platform == "win32":
-    alglib_dll_path = os.path.join(dir_name, 'lib/alglib.dll')
-    optimizer_dll_path = os.path.join(dir_name, 'lib/optimizer.dll')
+    dll_handle = CDLL("optimizer.dll")
 else:
-    alglib_dll_path = os.path.join(dir_name, 'lib/libalglib.so')
-    optimizer_dll_path = os.path.join(dir_name, 'lib/liboptimizer.so')
-
-_ = CDLL(alglib_dll_path)
-dll_handle = CDLL(optimizer_dll_path)
+    dll_handle = CDLL("liboptimizer.so")
 
 
 def set_stop_condition(epsg,
