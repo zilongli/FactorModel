@@ -9,12 +9,13 @@ from FactorModel.portcalc import MeanVariancePortCalc
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.simulator import Simulator
 from FactorModel.providers import FileProvider
+from FactorModel.analysers import PnLAnalyser
 
 import seaborn as sns
 from matplotlib import pyplot as plt
 sns.set_style('ticks')
 
-env = FileProvider("/home/wegamekinglc/Downloads/data.mat", rows=None)
+env = FileProvider("/home/wegamekinglc/Downloads/data.mat", rows=520000)
 trainer = ERModelTrainer(250, 1, 10)
 trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], env.source_data)
 port_calc = MeanVariancePortCalc('cost_budget', 2e-4)
