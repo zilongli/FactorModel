@@ -67,16 +67,3 @@ class Simulator(object):
         plain_data.rename(columns={'level_1': 'code'}, inplace=True)
         plain_data['calcDate'] = [calc_date] * len(plain_data)
         self.info_keeper.attach_info(plain_data)
-
-
-if __name__ == "__main__":
-    from FactorModel.providers import FileProvider
-    from FactorModel.portcalc import MeanVariancePortCalc
-
-    env = FileProvider("/home/wegamekinglc/Downloads/data.mat", rows=220000)
-    trainer = ERModelTrainer(250, 1, 10)
-    trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], env.source_data)
-    portcalc = MeanVariancePortCalc('cost_budget', 2e-4)
-    simulator = Simulator(env, trainer, portcalc)
-    df = simulator.simulate()
-    print(df)

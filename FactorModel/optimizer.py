@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
     from FactorModel.regulator import Constraints
 
-    df = 1000
+    df = 20
 
     er = np.random.randn(df) * 0.02
     cov = np.diag(np.abs(np.random.randn(df)) * 0.0004)
@@ -230,24 +230,13 @@ if __name__ == "__main__":
     lc = np.ones(df + 1)
     lct = np.array([0.0])
 
-    # ndim = 200
-    # cov = np.diag(np.ones(ndim))
-    # er = np.random.randn(ndim)
-    # tc = np.zeros(ndim)
-    # cw = np.zeros(ndim)
-    #
-    # lb = -np.ones(ndim)
-    # ub = np.ones(ndim)
-
-    # lc = np.array([1.0, 1.0, 1.0])
-    # lct = np.array([0.0])
-    constraints = Constraints(lb, ub, lc, lct)
+    constraints = Constraints(lb, ub, lc, lct, None)
 
     cond = set_stop_condition(1e-8, 1e-8, 1e-8, 30000)
     import datetime as dt
 
     start = dt.datetime.now()
-    reps = 1
+    reps = 100
     for i in range(reps):
         cond = portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost')
     end = dt.datetime.now()
@@ -261,6 +250,6 @@ if __name__ == "__main__":
 
     start = dt.datetime.now()
     for i in range(reps):
-        cond = portfolio_optimizer(cov, er, tc, cw, constraints, method='cost_budget', cost_buget=9999)#0.0003)
+        cond = portfolio_optimizer(cov, er, tc, cw, constraints, method='cost_budget', cost_buget=9999)
     end = dt.datetime.now()
     print(end - start)

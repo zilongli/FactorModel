@@ -27,7 +27,8 @@ class TestOptimizer(unittest.TestCase):
         constraints = Constraints(lb=None,
                                   ub=None,
                                   lc=None,
-                                  lct=None)
+                                  lct=None,
+                                  suspend=None)
 
         target_weight, cost \
             = portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost')
@@ -50,7 +51,8 @@ class TestOptimizer(unittest.TestCase):
         constraints = Constraints(lb=lb,
                                   ub=ub,
                                   lc=lc,
-                                  lct=lct)
+                                  lct=lct,
+                                  suspend=None)
 
         target_weight, cost \
             = portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost')
