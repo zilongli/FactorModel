@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 u"""
-Created on 2016-8-23
+Created on 2016-8-24
 
 @author: cheng.li
 """
@@ -60,4 +60,3 @@ class TestOptimizer(unittest.TestCase):
 
         benchmark_weight = TestOptimizer.analytic_solution(er, cov, aeq, beq)
         self.assertTrue(np.all(np.isclose(target_weight, benchmark_weight)))
-

@@ -12,7 +12,7 @@ import pandas as pd
 from collections import namedtuple
 
 
-Constraints = namedtuple('Constraints', ['lb', 'ub', 'lc', 'lct'])
+Constraints = namedtuple('Constraints', ['lb', 'ub', 'lc', 'lct', 'suspend'])
 
 
 class Regulator(object):
@@ -27,22 +27,24 @@ class Regulator(object):
         benchmark_weights = data['zz500'].values
         benchmark_weights.shape = -1, 1
 
+        suspended_flags = (data['Suspend20DayTrailing'] < 0.8) | (data['Suspend5DayTrailing'] < 0.9)
+
         equality_cons = np.ones((1, assets_number))
         equality_cons = np.concatenate((equality_cons, industry_factor.T), axis=0)
         equality_value = np.zeros((np.size(equality_cons, 0), 1))
-        equality_value +=  equality_cons @ benchmark_weights
+        equality_value += equality_cons @ benchmark_weights
         equality_cons = np.concatenate((equality_cons, equality_value), axis=1)
         equality_cons = equality_cons[:-1, :]
 
         lb = np.zeros(assets_number)
-        ub = np.ones(assets_number) * 0.02 + benchmark_weights
+        ub = np.ones(assets_number) * 0.02 + benchmark_weights.flatten()
 
         lc = equality_cons
         lct = np.zeros(np.size(equality_cons, 0))
 
-        tading_constrains = Constraints(lb=lb, ub=ub, lc=lc, lct=lct)
-        regulator_constrains = Constraints(lb=lb, ub=ub, lc=lc, lct=lct)
-        return tading_constrains, regulator_constrains
+        trading_constrains = Constraints(lb=lb, ub=ub, lc=lc, lct=lct, suspend=suspended_flags.values)
+        regulator_constrains = Constraints(lb=lb, ub=ub, lc=lc, lct=lct, suspend=suspended_flags.values)
+        return trading_constrains, regulator_constrains
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 u"""
 Created on 2016-8-16
@@ -10,10 +11,29 @@ from typing import Optional
 import pandas as pd
 import numpy as np
 from FactorModel.optimizer import portfolio_optimizer
+from FactorModel.regulator import Constraints
 
 
 class PortCalc(object):
-    pass
+
+    def trade(self,
+              er_table: pd.DataFrame,
+              pre_holding: pd.DataFrame,
+              **kwargs) -> pd.DataFrame:
+        raise NotImplementedError()
+
+    @staticmethod
+    def adjust_constraints(pre_holding: pd.DataFrame,
+                           constraints: Constraints) -> Constraints:
+        lb = constraints.lb
+        ub = constraints.ub
+        weights = pre_holding['todayHolding'].values
+        weights[np.abs(weights) < 1e-8] = 0.
+
+        lb[constraints.suspend] = weights[constraints.suspend]
+        ub[constraints.suspend] = weights[constraints.suspend]
+
+        return Constraints(lb=lb, ub=ub, lc=constraints.lc, lct=constraints.lct, suspend=constraints.suspend)
 
 
 class MeanVariancePortCalc(PortCalc):
@@ -30,14 +50,18 @@ class MeanVariancePortCalc(PortCalc):
         assets_number = len(er_table)
         er = er_table['er'].values
         cov = np.diag(0.0004 * np.ones(assets_number))
-        if not pre_holding.empty:
+
+        constraints = kwargs['constraints']
+
+        if np.sum(pre_holding['todayHolding']) > 0:
             cw = pre_holding['todayHolding']
             cost_buget = self.cost_buget
+            constraints = PortCalc.adjust_constraints(pre_holding, constraints)
         else:
             cw = np.zeros(assets_number)
             cost_buget = 9999.
         tc = np.ones(assets_number) * 0.002
-        constraints = kwargs['constraints']
+
         weights, cost = portfolio_optimizer(cov=cov,
                                             er=er,
                                             tc=tc,
@@ -64,7 +88,7 @@ class RankPortCalc(PortCalc):
         level = 100
         rank_threshold = 200
 
-        if not pre_holding.empty:
+        if np.sum(pre_holding['todayHolding']) > 0:
             # match pre_holding to today's codes
             rtntable.loc[:, 'todayHolding'] = 0.
             rtntable['todayHolding'] = pre_holding['todayHolding']
@@ -113,7 +137,7 @@ class ThresholdPortCalc(PortCalc):
         total_assets = len(rtntable)
         level = np.percentile(rtntable['er'], 100. * (total_assets - 100) / total_assets)
 
-        if not pre_holding.empty:
+        if np.sum(pre_holding['todayHolding']) > 0:
             # match pre_holding to today's codes
             rtntable.loc[:, 'todayHolding'] = 0.
             rtntable['todayHolding'] = pre_holding['todayHolding']

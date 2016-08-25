@@ -5,6 +5,7 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
+import numpy as np
 import pandas as pd
 from FactorModel.providers import Provider
 from FactorModel.ermodel import ERModelTrainer
@@ -36,19 +37,21 @@ class Simulator(object):
                 break
 
             print(apply_date)
+
             trading_constraints, _ = self.constraints_builder.build_constraints(this_data)
             codes = this_data.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
             if not model.empty:
+                matched_preholding = pd.DataFrame(data=np.zeros(len(codes)), index=codes, columns=['todayHolding'])
+                if not pre_holding.empty:
+                    matched_preholding['todayHolding'] = pre_holding['todayHolding']
+                    matched_preholding.fillna(0., inplace=True)
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                positions = self.port_calc.trade(er_table, pre_holding, constraints=trading_constraints)
-                if not pre_holding.empty:
-                    positions['preHolding'] = pre_holding['todayHolding']
-                    positions.fillna(0., inplace=True)
-                else:
-                    positions['preHolding'] = 0.0
+                positions = self.port_calc.trade(er_table, matched_preholding, constraints=trading_constraints)
+                positions['preHolding'] = matched_preholding['todayHolding']
+                positions['suspend'] = trading_constraints.suspend
                 self.log_info(apply_date, calc_date, positions)
 
                 pre_holding = positions[['todayHolding']]
