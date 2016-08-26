@@ -41,6 +41,7 @@
     * 将 ``lib``  目录加入环境变量 ``LD_LIBRARY_PATH``;
 
     * 使用如下指令安装:
+    
       ```
       python setup.py install
       ```
