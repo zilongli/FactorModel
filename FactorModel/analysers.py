@@ -16,7 +16,7 @@ class PnLAnalyser(object):
 
     def calculate(self,
                   data: pd.DataFrame) -> pd.DataFrame:
-        all_dates = data.index.get_level_values(0).unique()
+        all_dates = np.unique(data.index)
         everyday_return = []
         everyday_return_after_tc = []
         everyday_tc = []

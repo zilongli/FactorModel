@@ -42,21 +42,26 @@ class Simulator(object):
             codes = this_data.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
             if not model.empty:
-                matched_preholding = pd.DataFrame(data=np.zeros(len(codes)), index=codes, columns=['todayHolding'])
-                if not pre_holding.empty:
-                    matched_preholding['todayHolding'] = pre_holding['todayHolding']
-                    matched_preholding.fillna(0., inplace=True)
+                evolved_preholding = Simulator.evolve_portfolio(codes, pre_holding)
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                positions = self.port_calc.trade(er_table, matched_preholding, constraints=trading_constraints)
-                positions['preHolding'] = matched_preholding['todayHolding']
+                positions = self.port_calc.trade(er_table, evolved_preholding, constraints=trading_constraints)
+                positions['preHolding'] = evolved_preholding['todayHolding']
                 positions['suspend'] = trading_constraints.suspend
                 self.log_info(apply_date, calc_date, positions)
 
                 pre_holding = positions[['todayHolding']]
 
         return self.info_keeper.info_view()
+
+    @staticmethod
+    def evolve_portfolio(codes, pre_holding):
+        evolved_preholding = pd.DataFrame(data=np.zeros(len(codes)), index=codes, columns=['todayHolding'])
+        if not pre_holding.empty:
+            evolved_preholding['todayHolding'] = pre_holding['todayHolding']
+            evolved_preholding.fillna(0., inplace=True)
+        return evolved_preholding
 
     def log_info(self,
                  apply_date: pd.Timestamp,

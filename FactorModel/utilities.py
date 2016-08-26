@@ -35,6 +35,15 @@ def load_mat(file_path: str, rows: Optional[int] =None) -> pd.DataFrame:
     return df
 
 
+def combine(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    df1 = df1.set_index('code', append=True, drop=False)
+    df2 = df2.set_index('code', append=True)
+    df1[df2.columns] = df2
+    df1.dropna(inplace=True)
+    df1.reset_index(level=-1, drop=True, inplace=True)
+    return df1
+
+
 def py_assert(cond: bool, exep_type: Any, msg: str) -> None:
     if not cond:
         raise exep_type(msg)
@@ -93,8 +102,6 @@ def create_logger() -> logging.Logger:
     logger.addHandler(fh)
     return logger
 
-logger = create_logger()
-
 
 def exception(logger):
     """
@@ -119,4 +126,3 @@ def exception(logger):
             raise
         return wrapper
     return decorator
-
