@@ -112,12 +112,12 @@ def portfolio_optimizer_with_no_cost_penlty(cov,
 
 
 def portfolio_optimizer_with_no_cost_penlty2(cov,
-                                                er,
-                                                cw,
-                                                bndl=None,
-                                                bndu=None,
-                                                lc=None,
-                                                lct=None):
+                                            er,
+                                            cw,
+                                            bndl=None,
+                                            bndu=None,
+                                            lc=None,
+                                            lct=None):
     np.array([0.0])
     prob_size, c_er, c_cov, _, c_cw, c_bndl, c_bndu, c_lc, c_lct, c_lcm = \
         argument_checker(cov, er, tc, cw, bndl, bndu, lc, lct)
@@ -181,13 +181,13 @@ def portfolio_optimizer_with_cost_buget(cov,
     return target_weight, cost
 
 
-def portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost', cost_buget=9999):
+def portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost', cost_budget=9999):
     if method == 'cost_budget':
         return portfolio_optimizer_with_cost_buget(cov,
                                                    er,
                                                    tc,
                                                    cw,
-                                                   cost_buget,
+                                                   cost_budget,
                                                    constraints.lb,
                                                    constraints.ub,
                                                    constraints.lc,
