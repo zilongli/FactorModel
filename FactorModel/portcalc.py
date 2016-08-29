@@ -11,7 +11,7 @@ from typing import Optional
 import pandas as pd
 import numpy as np
 from scipy.stats import rankdata
-from FactorModel.optimizer import portfolio_optimizer
+from FactorModel.optimizer import CostBudgetProblem
 from FactorModel.regulator import Constraints
 
 
@@ -63,13 +63,13 @@ class MeanVariancePortCalc(PortCalc):
             cost_budget = 9999.
         tc = np.ones(assets_number) * 0.002
 
-        weights, cost = portfolio_optimizer(cov=cov,
-                                            er=er,
-                                            tc=tc,
-                                            cw=cw,
-                                            constraints=constraints,
-                                            method=self.method,
-                                            cost_budget=cost_budget)
+        prob = CostBudgetProblem(cov,
+                                 er,
+                                 constraints,
+                                 tc,
+                                 cost_budget)
+        weights, cost = prob.optimize(cw)
+
         rtntable['todayHolding'] = weights
         return rtntable
 

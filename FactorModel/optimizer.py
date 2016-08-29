@@ -6,12 +6,72 @@ Created on 2016-5-17
 
 import sys
 from ctypes import *
+import abc
+from typing import Tuple
 import numpy as np
+from FactorModel.regulator import Constraints
 
 if sys.platform == "win32":
     dll_handle = CDLL("optimizer.dll")
 else:
     dll_handle = CDLL("liboptimizer.so")
+
+
+class OptProblem(metaclass=abc.ABCMeta):
+
+    def __init__(self,
+                 cov: np.array,
+                 er: np.array,
+                 constraints: Constraints) -> None:
+        self.cov = cov
+        self.er = er
+        self.constraints = constraints
+
+    @abc.abstractmethod
+    def optimize(self, cw: np.array) -> Tuple[np.array, float]:
+        pass
+
+
+class NoCostProblem(OptProblem):
+
+    def __init__(self,
+                 cov: np.array,
+                 er: np.array,
+                 constraints: Constraints) -> None:
+        super().__init__(cov, er, constraints)
+
+    def optimize(self, cw: np.array) -> Tuple[np.array, float]:
+        return portfolio_optimizer_with_no_cost_penlty(self.cov,
+                                                       self.er,
+                                                       cw,
+                                                       self.constraints.lb,
+                                                       self.constraints.ub,
+                                                       self.constraints.lc,
+                                                       self.constraints.lct)
+
+
+class CostBudgetProblem(OptProblem):
+
+    def __init__(self,
+                 cov: np.array,
+                 er: np.array,
+                 constraints: Constraints,
+                 tc: np.array,
+                 cost_budget: float) -> None:
+        super().__init__(cov, er, constraints)
+        self.tc = tc
+        self.cost_budget = cost_budget
+
+    def optimize(self, cw: np.array) -> Tuple[np.array, float]:
+        return portfolio_optimizer_with_cost_buget(self.cov,
+                                                   self.er,
+                                                   self.tc,
+                                                   cw,
+                                                   self.cost_budget,
+                                                   self.constraints.lb,
+                                                   self.constraints.ub,
+                                                   self.constraints.lc,
+                                                   self.constraints.lct)
 
 
 def set_stop_condition(epsg,
@@ -179,77 +239,3 @@ def portfolio_optimizer_with_cost_buget(cov,
         target_weight[i] = c_tw[i]
     cost = c_cost[0]
     return target_weight, cost
-
-
-def portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost', cost_budget=9999):
-    if method == 'cost_budget':
-        return portfolio_optimizer_with_cost_buget(cov,
-                                                   er,
-                                                   tc,
-                                                   cw,
-                                                   cost_budget,
-                                                   constraints.lb,
-                                                   constraints.ub,
-                                                   constraints.lc,
-                                                   constraints.lct)
-    elif method == 'no_cost':
-        return portfolio_optimizer_with_no_cost_penlty(cov,
-                                                      er,
-                                                      cw,
-                                                      constraints.lb,
-                                                      constraints.ub,
-                                                      constraints.lc,
-                                                      constraints.lct)
-
-    elif method == 'no_cost2':
-        return portfolio_optimizer_with_no_cost_penlty2(cov,
-                                                       er,
-                                                       cw,
-                                                       constraints.lb,
-                                                       constraints.ub,
-                                                       constraints.lc,
-                                                       constraints.lct)
-
-    else:
-        raise ValueError("({method}) is not recognized".fromat(method=method))
-
-
-if __name__ == "__main__":
-
-    from FactorModel.regulator import Constraints
-
-    df = 20
-
-    er = np.random.randn(df) * 0.02
-    cov = np.diag(np.abs(np.random.randn(df)) * 0.0004)
-    tc = np.ones(df) * 0.003
-    cw = np.ones(df) / df
-    lb = np.zeros(df)
-    ub = np.ones(df)
-
-    lc = np.ones(df + 1)
-    lct = np.array([0.0])
-
-    constraints = Constraints(lb, ub, lc, lct, None)
-
-    cond = set_stop_condition(1e-8, 1e-8, 1e-8, 30000)
-    import datetime as dt
-
-    start = dt.datetime.now()
-    reps = 100
-    for i in range(reps):
-        cond = portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost')
-    end = dt.datetime.now()
-    print(end - start)
-
-    start = dt.datetime.now()
-    for i in range(reps):
-        cond = portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost2')
-    end = dt.datetime.now()
-    print(end - start)
-
-    start = dt.datetime.now()
-    for i in range(reps):
-        cond = portfolio_optimizer(cov, er, tc, cw, constraints, method='cost_budget', cost_buget=9999)
-    end = dt.datetime.now()
-    print(end - start)

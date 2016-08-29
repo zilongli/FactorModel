@@ -8,7 +8,7 @@ Created on 2016-8-24
 import unittest
 import numpy as np
 from FactorModel.regulator import Constraints
-from FactorModel.optimizer import portfolio_optimizer
+from FactorModel.optimizer import NoCostProblem
 
 
 class TestOptimizer(unittest.TestCase):
@@ -23,15 +23,14 @@ class TestOptimizer(unittest.TestCase):
         er = np.array([.05, .05])
         cov = np.array([[.25, .10], [.10, .15]])
         cw = np.array([.5, .5])
-        tc = np.array([0.002, 0.002])
         constraints = Constraints(lb=None,
                                   ub=None,
                                   lc=None,
                                   lct=None,
                                   suspend=None)
 
-        target_weight, cost \
-            = portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost')
+        prob = NoCostProblem(cov, er, constraints)
+        target_weight, cost = prob.optimize(cw)
 
         benchmark_weight = np.linalg.solve(cov, er)
         self.assertTrue(np.all(np.isclose(target_weight, benchmark_weight)))
@@ -40,7 +39,6 @@ class TestOptimizer(unittest.TestCase):
         er = np.array([.05, .05, .05])
         cov = np.array([[.25, .10, .08], [.10, .17, .05], [.08, .05, .15]])
         cw = np.array([0.33, 0.33, 0.33])
-        tc = np.array([0.002, 0.002])
 
         lb = np.array([0., 0., 0.])
         ub = np.array([1., 1., 1.])
@@ -54,8 +52,8 @@ class TestOptimizer(unittest.TestCase):
                                   lct=lct,
                                   suspend=None)
 
-        target_weight, cost \
-            = portfolio_optimizer(cov, er, tc, cw, constraints, method='no_cost')
+        prob = NoCostProblem(cov, er, constraints)
+        target_weight, cost = prob.optimize(cw)
 
         aeq = lc[:, :-1]
         beq = lc[:, -1]
