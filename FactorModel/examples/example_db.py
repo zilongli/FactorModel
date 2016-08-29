@@ -5,7 +5,7 @@ Created on 2016-8-29
 @author: cheng.li
 """
 from FactorModel.utilities import combine
-from FactorModel.portcalc import MeanVariancePortCalc
+from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.simulator import Simulator
 from FactorModel.providers import DBProvider
@@ -15,8 +15,8 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 sns.set_style('ticks')
 
-env = DBProvider('10.63.6.219', 'sa', 'A12345678!')
-env.fetch_data(20080102, 20090301, ['Growth', 'CFinc1', 'Rev5m'])
+env = DBProvider('rm-bp1jv5xy8o62h2331o.sqlserver.rds.aliyuncs.com:3433', 'wegamekinglc', 'We051253524522')
+env.fetch_data(20080102, 20151101, ['Growth', 'CFinc1', 'Rev5m'])
 trainer = ERModelTrainer(250, 1, 10)
 trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], env.source_data)
 port_calc = ERRankPortCalc()
