@@ -90,10 +90,8 @@ class DBProvider(DataFrameProvider):
                  pwd):
         super().__init__()
         if DB_DRIVER_TYPE == 'mssql':
-            print('using pymssql')
             conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
         else:
-            print('using pyodbc')
             conn_template = 'mssql+pyodbc://{user}:{pwd}@{server}/{db_name}?driver=SQL+Server+Native+Client+11.0'
         self.mf_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='MultiFactor')
         self.pm_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='PortfolioManagements')

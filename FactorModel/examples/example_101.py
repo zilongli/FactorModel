@@ -14,7 +14,12 @@ from FactorModel.analysers import PnLAnalyser
 
 import seaborn as sns
 from matplotlib import pyplot as plt
+
+import datetime as dt
+
 sns.set_style('ticks')
+
+start = dt.datetime.now()
 
 env = FileProvider("/home/wegamekinglc/Downloads/data.mat", rows=None)
 trainer = ERModelTrainer(250, 1, 10)
@@ -23,11 +28,21 @@ port_calc = MeanVariancePortCalc('cost_budget', 2e-4)
 simulator = Simulator(env, trainer, port_calc)
 analyser = PnLAnalyser()
 
+print(dt.datetime.now() - start)
+start = dt.datetime.now()
+
 df1 = env.source_data
 df2 = simulator.simulate()
 
+print(dt.datetime.now() - start)
+start = dt.datetime.now()
+
 raw_data = combine(df1, df2)
+
+print(dt.datetime.now() - start)
+start = dt.datetime.now()
 
 returns = analyser.calculate(raw_data)
 analyser.plot()
+print(dt.datetime.now() - start)
 plt.show()
