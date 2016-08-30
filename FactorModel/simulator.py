@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from FactorModel.providers import Provider
 from FactorModel.ermodel import ERModelTrainer
+from FactorModel.covmodel import CovModel
 from FactorModel.portcalc import PortCalc
 from FactorModel.infokeeper import InfoKeeper
 from FactorModel.regulator import Regulator
@@ -20,11 +21,13 @@ class Simulator(object):
     def __init__(self,
                  provider: Provider,
                  model_factory: ERModelTrainer,
+                 cov_model: CovModel,
                  port_calc: PortCalc) -> None:
         self.model_factory = model_factory
         self.provider = iter(provider)
         self.port_calc = port_calc
         self.info_keeper = InfoKeeper()
+        self.cov_model = cov_model
         self.constraints_builder = Regulator(INDUSTRY_LIST)
 
     def simulate(self) -> pd.DataFrame:
@@ -41,12 +44,13 @@ class Simulator(object):
             trading_constraints, _ = self.constraints_builder.build_constraints(this_data)
             codes = this_data.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
-            if not model.empty:
+            cov_matrix = self.cov_model.fetch_cov(calc_date)
+            if not model.empty and len(cov_matrix) > 0:
                 evolved_preholding = Simulator.evolve_portfolio(codes, pre_holding)
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                positions = self.port_calc.trade(er_table, evolved_preholding, constraints=trading_constraints)
+                positions = self.port_calc.trade(er_table, evolved_preholding, cov=cov_matrix, constraints=trading_constraints)
                 positions['preHolding'] = evolved_preholding['todayHolding']
                 positions['suspend'] = trading_constraints.suspend
                 self.log_info(apply_date, calc_date, positions)

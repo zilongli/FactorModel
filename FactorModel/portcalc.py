@@ -50,9 +50,9 @@ class MeanVariancePortCalc(PortCalc):
         rtntable = er_table.copy(deep=True)
         assets_number = len(er_table)
         er = er_table['er'].values
-        cov = np.diag(0.0004 * np.ones(assets_number))
 
         constraints = kwargs['constraints']
+        cov = kwargs['cov']
 
         if np.sum(pre_holding['todayHolding']) > 0:
             cw = pre_holding['todayHolding']

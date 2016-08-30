@@ -53,6 +53,11 @@ def list_to_str(names: List[str]) -> str:
     return ','.join(names)
 
 
+def format_date_index(df: pd.DataFrame,
+                      formater: Optional[str]='%Y%m%d') -> None:
+    df.index = pd.to_datetime(df.index, format=formater)
+
+
 def format_date_to_index(df: pd.DataFrame,
                          col_name: str,
                          formater: Optional[str]='%Y%m%d',

@@ -9,14 +9,15 @@ import abc
 import copy
 from typing import List
 from typing import Optional
+from typing import Tuple
 import datetime as dt
 import pandas as pd
 import sqlalchemy
-import pypyodbc
 from FactorModel.utilities import load_mat
+from FactorModel.utilities import format_date_index
 from FactorModel.utilities import format_date_to_index
 
-DB_DRIVER_TYPE = 'pypyodbc'
+DB_DRIVER_TYPE = 'pyodbc'
 
 ALPHA_FACTOR_TABLES = {'AlphaFactors_PROD',
                        'AlphaFactors_Difeiyue',
@@ -36,6 +37,10 @@ class DataFrameProvider(Provider):
         self.calc_date_list = None
         self.apply_date_list = None
         self.repository = None
+        self.corr_mat = pd.DataFrame()
+        self.factor_vol = pd.DataFrame()
+        self.risk_level = pd.DataFrame()
+        self.risk_style = pd.DataFrame()
 
     @property
     def source_data(self) -> pd.DataFrame:
@@ -71,6 +76,18 @@ class DataFrameProvider(Provider):
         else:
             return self.repository.loc[flags, :]
 
+    def fetch_factor_corr(self, calc_date):
+        return self.corr_mat.loc[self.corr_mat.index.asof(calc_date)].values[0]
+
+    def fetch_factor_vol(self, calc_date):
+        return self.factor_vol.loc[self.factor_vol.index.asof(calc_date)].values[0]
+
+    def fetch_risk_level(self, calc_date):
+        return self.risk_level.loc[self.risk_level.index.asof(calc_date)].values
+
+    def fetch_risk_style(self, calc_date, fields):
+        return self.risk_style.loc[self.risk_style.index.asof(calc_date), fields].values
+
 
 class FileProvider(DataFrameProvider):
     def __init__(self, file_path: str, rows: Optional[int] = None):
@@ -86,27 +103,20 @@ class DBProvider(DataFrameProvider):
                  user,
                  pwd):
         super().__init__()
-        if DB_DRIVER_TYPE != 'pypyodbc':
-            if DB_DRIVER_TYPE == 'pymssql':
-                conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
-            elif DB_DRIVER_TYPE == 'pyodbc':
-                conn_template = 'mssql+pyodbc://{user}:{pwd}@{server}/{db_name}?driver=SQL+Server+Native+Client+11.0'
-            mf_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='MultiFactor')
-            pm_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='PortfolioManagements')
+        if DB_DRIVER_TYPE == 'pymssql':
+            conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
+        elif DB_DRIVER_TYPE == 'pyodbc':
+            conn_template = 'mssql+pyodbc://{user}:{pwd}@{server}/{db_name}?driver=SQL+Server+Native+Client+11.0'
+        mf_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='MultiFactor')
+        pm_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='PortfolioManagements')
 
-            self.mf_engine = sqlalchemy.create_engine(mf_conn)
-            self.pm_engine = sqlalchemy.create_engine(pm_conn)
-        else:
-            self.mf_engine = pypyodbc.connect(
-                "DRIVER={SQL Server};SERVER=10.63.6.219;UID=sa;PWD=A12345678!;DATABASE=MultiFactor")
-            self.pm_engine = pypyodbc.connect(
-                "DRIVER={SQL Server};SERVER=10.63.6.219;UID=sa;PWD=A12345678!;DATABASE=PortfolioManagements")
+        self.mf_engine = sqlalchemy.create_engine(mf_conn)
+        self.pm_engine = sqlalchemy.create_engine(pm_conn)
 
-    def fetch_data(self,
-                   start_date: int,
-                   end_date: int,
-                   alpha_factors: List[str]) -> None:
-
+    def load_repository_data(self,
+                              start_date: int,
+                              end_date: int,
+                              alpha_factors: List[str]) -> Tuple[int, int]:
         # stock universe
         sql = 'select calcDate, applyDate, Code as code from [StockUniverse] ' \
               'where [applyDate] >= {apply_start} and [applyDate] <= {apply_end} ' \
@@ -242,8 +252,64 @@ class DBProvider(DataFrameProvider):
         self.apply_date_list = df.applyDate.unique()
         self.repository = df
 
+        return calc_start, calc_end
+
+    def load_cov_data(self,
+                       calc_start: int,
+                       calc_end: int) -> None:
+        # correlation matrix
+        sql = 'select * from  [CorrelationMatrix] where [Date] >= {calc_start} and [Date] <= {calc_end} order by [Date]' \
+            .format(calc_start=calc_start, calc_end=calc_end)
+        raw_corr_data = pd.read_sql(sql, self.pm_engine).values
+        model_dates = raw_corr_data[:, 0]
+        all_corr_matrixs = []
+        for i, _ in enumerate(model_dates):
+            matrix = raw_corr_data[i, 1:]
+            matrix.shape = 30, 30
+            all_corr_matrixs.append(matrix)
+        self.corr_mat = pd.DataFrame(data={'date': model_dates, 'matrix': all_corr_matrixs})
+        self.corr_mat.set_index('date', inplace=True)
+        format_date_index(self.corr_mat)
+
+        # factor vol model
+        sql = 'select * from [FactorVolatility] where [Date] >= {calc_start} and [Date] <= {calc_end} order by [Date]' \
+            .format(calc_start=calc_start, calc_end=calc_end)
+        raw_factor_vol = pd.read_sql(sql, self.pm_engine).values
+        model_dates = raw_factor_vol[:, 0]
+        all_factor_vol = []
+        for i, _ in enumerate(model_dates):
+            all_factor_vol.append(raw_factor_vol[i, 1:])
+        self.factor_vol = pd.DataFrame({'date': model_dates, 'vol': all_factor_vol})
+        self.factor_vol.set_index('date', inplace=True)
+        format_date_index(self.factor_vol)
+
+        # special risk level model
+        sql = 'select [Date] as [date], level from [SpecialRiskLevel] where [Date] >= {calc_start} and [Date] <= {calc_end} order by [Date]' \
+            .format(calc_start=calc_start, calc_end=calc_end)
+        self.risk_level = pd.read_sql(sql, self.pm_engine, index_col=['date'])
+        format_date_index(self.risk_level)
+
+        # special risk style model
+        sql = 'select * from [SpecialRiskStyleModel] where [Date] >= {calc_start} and [Date] <= {calc_end} order by [Date]' \
+            .format(calc_start=calc_start, calc_end=calc_end)
+        raw_risk_style = pd.read_sql(sql, self.pm_engine, index_col='Date')
+        self.risk_style = raw_risk_style
+        format_date_index(self.risk_style)
+
+    def load_data(self,
+                   start_date: str,
+                   end_date: str,
+                   alpha_factors: List[str]) :
+        start_date = int(start_date.replace('-', ''))
+        end_date = int(end_date.replace('-', ''))
+        calc_start, calc_end = self.load_repository_data(start_date, end_date, alpha_factors)
+        self.load_cov_data(calc_start, calc_end)
+
 
 if __name__ == "__main__":
     db_provider = DBProvider('10.63.6.219', 'sa', 'A12345678!')
-    db_provider.fetch_data(20080102, 20151101, ['Growth', 'CFinc1', 'Rev5m'])
-    print(db_provider.source_data)
+    db_provider.load_data('2008-01-02', '2010-11-01', ['Growth', 'CFinc1', 'Rev5m'])
+    print(db_provider.risk_style.index[0])
+
+    calc_date = pd.Timestamp('2010-01-30')
+    print(db_provider.fetch_factor_corr(calc_date))
