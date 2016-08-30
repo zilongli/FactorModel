@@ -20,10 +20,13 @@ class CovModel(object):
 
     def  fetch_cov(self, calc_date: str) -> np.array:
         calc_date = pd.Timestamp(calc_date)
-        corr_mat = self.provider.fetch_factor_corr(calc_date)
-        factor_vol = self.provider.fetch_factor_vol(calc_date)
-        sr_level = self.provider.fetch_risk_level(calc_date)
-        sr_style = self.provider.fetch_risk_style(calc_date, INDUSTRY_LIST + STYLE_LIST)
+        try:
+            corr_mat = self.provider.fetch_factor_corr(calc_date)
+            factor_vol = self.provider.fetch_factor_vol(calc_date)
+            sr_level = self.provider.fetch_risk_level(calc_date)
+            sr_style = self.provider.fetch_risk_style(calc_date, INDUSTRY_LIST + STYLE_LIST)
+        except TypeError:
+            return np.array([])
 
         fields = ['calcDate'] + INDUSTRY_LIST + STYLE_LIST
         data = self.provider.fetch_values_from_repo(calc_date, 'calc_date', fields)
