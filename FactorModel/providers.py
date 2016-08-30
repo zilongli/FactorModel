@@ -25,14 +25,12 @@ ALPHA_FACTOR_TABLES = {'AlphaFactors_PROD',
 
 
 class Provider(metaclass=abc.ABCMeta):
-
     @abc.abstractmethod
     def __iter__(self):
         pass
 
 
 class DataFrameProvider(Provider):
-
     def __init__(self) -> None:
         self.calc_date_list = None
         self.apply_date_list = None
@@ -53,8 +51,8 @@ class DataFrameProvider(Provider):
             yield calc_date, apply_date, self.fetch_values_from_repo(apply_date)
 
     def fetch_values_from_repo(self, date: pd.Timestamp,
-                               date_type: Optional[str]='apply_date',
-                               fields: Optional[List[str]]=None) -> pd.DataFrame:
+                               date_type: Optional[str] = 'apply_date',
+                               fields: Optional[List[str]] = None) -> pd.DataFrame:
         if date_type.lower() == 'apply_date':
             if fields:
                 return self.repository.loc[date, fields]
@@ -74,8 +72,7 @@ class DataFrameProvider(Provider):
 
 
 class FileProvider(DataFrameProvider):
-
-    def __init__(self, file_path: str, rows: Optional[int]=None):
+    def __init__(self, file_path: str, rows: Optional[int] = None):
         super().__init__()
         self.repository = load_mat(file_path, rows)
         self.calc_date_list = self.repository.calcDate.unique()
@@ -83,7 +80,6 @@ class FileProvider(DataFrameProvider):
 
 
 class DBProvider(DataFrameProvider):
-
     def __init__(self,
                  server,
                  user,
@@ -103,7 +99,9 @@ class DBProvider(DataFrameProvider):
         pm_engine = sqlalchemy.create_engine(self.pm_conn)
 
         # stock universe
-        sql = 'select * from [StockUniverse] where [applyDate] >= {apply_start} and [applyDate] <= {apply_end} ORDER BY [applyDate], [code]' \
+        sql = 'select * from [StockUniverse] ' \
+              'where [applyDate] >= {apply_start} and [applyDate] <= {apply_end} ' \
+              'ORDER BY [applyDate], [code]' \
             .format(apply_start=start_date, apply_end=end_date)
 
         stock_universe = pd.read_sql(sql, pm_engine)
@@ -115,14 +113,19 @@ class DBProvider(DataFrameProvider):
         code_list_str = ','.join(map(lambda x: str(x), code_list))
 
         # risk and factor
-        sql = 'select * from [RiskFactor] where [date] >= {calc_start} and [date] <= {calc_end} and [code] in ({code_list_str}) ORDER BY [date], [code]' \
+        sql = 'select * from [RiskFactor] ' \
+              'where [date] >= {calc_start} and [date] <= {calc_end} and [code] in ({code_list_str}) ' \
+              'ORDER BY [date], [code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
         raw_risk_data = pd.read_sql(sql, pm_engine)
-        df = pd.merge(stock_universe, raw_risk_data, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'], suffixes=('', '_y'))
+        df = pd.merge(stock_universe, raw_risk_data, how='left', left_on=['calcDate', 'code'],
+                      right_on=['Date', 'Code'], suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         sql_template = "select [name] from [syscolumns] where [id] = object_id('{alpha_factor_table}')"
-        raw_factor_dict = {table: pd.read_sql(sql_template.format(alpha_factor_table=table), pm_engine)['name'].values[2:] for table in ALPHA_FACTOR_TABLES}
+        raw_factor_dict = {
+        table: pd.read_sql(sql_template.format(alpha_factor_table=table), pm_engine)['name'].values[2:] for table in
+        ALPHA_FACTOR_TABLES}
         factor_dict = dict()
         for key, values in raw_factor_dict.items():
             for v in values:
@@ -138,23 +141,34 @@ class DBProvider(DataFrameProvider):
 
         for table_name, factors in table2factors.items():
             factor_str = ','.join(factors)
-            sql = 'select [Date], [Code], {factors} from {table_name} where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ORDER BY [Date], [Code]' \
-                .format(factors=factor_str, table_name=table_name, calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
+            sql = 'select [Date], [Code], {factors} from {table_name} ' \
+                  'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
+                  'ORDER BY [Date], [Code]' \
+                .format(factors=factor_str, table_name=table_name, calc_start=calc_start, calc_end=calc_end,
+                        code_list_str=code_list_str)
             factor_data = pd.read_sql(sql, pm_engine)
-            df = pd.merge(df, factor_data, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'], suffixes=('', '_y'))
+            df = pd.merge(df, factor_data, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
+                          suffixes=('', '_y'))
             df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         # future returns and res
-        sql = 'select [Date], [Code], [D1Res], [D5Res], [D10Res], [D15Res], [D20Res] from [StockResidual] where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ORDER BY [Date], [Code]' \
+        sql = 'select [Date], [Code], [D1Res], [D5Res], [D10Res], [D15Res], [D20Res] from [StockResidual] ' \
+              'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
+              'ORDER BY [Date], [Code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
         raw_future_res = pd.read_sql(sql, pm_engine)
-        df = pd.merge(df, raw_future_res, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'], suffixes=('', '_y'))
+        df = pd.merge(df, raw_future_res, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
+                      suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
-        sql = 'select [Date], [Code], [D1LogReturn], [D5LogReturn], [D10LogReturn], [D15LogReturn], [D20LogReturn] from [StockReturns] where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ORDER BY [Date], [Code]' \
+        sql = 'select [Date], [Code], [D1LogReturn], [D5LogReturn], [D10LogReturn], [D15LogReturn], [D20LogReturn] ' \
+              'from [StockReturns] ' \
+              'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
+              'ORDER BY [Date], [Code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
         raw_future_returns = pd.read_sql(sql, pm_engine)
-        df = pd.merge(df, raw_future_returns, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'], suffixes=('', '_y'))
+        df = pd.merge(df, raw_future_returns, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
+                      suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         # daily return
@@ -165,36 +179,48 @@ class DBProvider(DataFrameProvider):
         offset_end_date = end_date_dt + dt.timedelta(days=30)
 
         mf_engine = sqlalchemy.create_engine(self.mf_conn)
-        sql = 'select [Date], [Code], [Return] from [TradingInfo1] where [Date] >= {start_date} and [Date] <= {end_date} and [Code] in ({code_list_str}) order by [Date], [Code]' \
-            .format(start_date=offset_start_date.strftime('%Y%m%d'), end_date=offset_end_date.strftime('%Y%m%d'), code_list_str=code_list_str)
+        sql = 'select [Date], [Code], [Return] from [TradingInfo1] ' \
+              'where [Date] >= {start_date} and [Date] <= {end_date} and [Code] in ({code_list_str}) ' \
+              'order by [Date], [Code]' \
+            .format(start_date=offset_start_date.strftime('%Y%m%d'), end_date=offset_end_date.strftime('%Y%m%d'),
+                    code_list_str=code_list_str)
         raw_returns = pd.read_sql(sql, mf_engine)
 
         dates_list = raw_returns.Date.unique()
         next_dates_list = [*dates_list[1:], None]
         dates_table = pd.DataFrame(data={'this': dates_list, 'next': next_dates_list}, dtype=int)
 
-        dates_code_matched = pd.merge(raw_returns[['Date', 'Code']], dates_table, how='left', left_on=['Date'], right_on=['this'])
-        next_returns = pd.merge(dates_code_matched, raw_returns[['Date', 'Code', 'Return']], how='left', left_on=['next', 'Code'], right_on=['Date', 'Code'])
+        dates_code_matched = pd.merge(raw_returns[['Date', 'Code']], dates_table, how='left', left_on=['Date'],
+                                      right_on=['this'])
+        next_returns = pd.merge(dates_code_matched, raw_returns[['Date', 'Code', 'Return']], how='left',
+                                left_on=['next', 'Code'], right_on=['Date', 'Code'])
         raw_returns['nextReturn1day'] = next_returns['Return']
-        df = pd.merge(df, raw_returns, how='left', left_on=['applyDate', 'code'], right_on=['Date', 'Code'], suffixes=('', '_y'))
+        df = pd.merge(df, raw_returns, how='left', left_on=['applyDate', 'code'], right_on=['Date', 'Code'],
+                      suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         # index components
-        sql = 'select [Date], [Code], [500Weight] as zz500 from [IndexComponents] where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) order by [Date], [Code]' \
+        sql = 'select [Date], [Code], [500Weight] as zz500 from [IndexComponents] ' \
+              'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
+              'order by [Date], [Code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
         raw_index_components = pd.read_sql(sql, mf_engine)
         raw_index_components['zz500'] /= 100.
-        df = pd.merge(df, raw_index_components, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'], suffixes=('', '_y'))
+        df = pd.merge(df, raw_index_components, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
+                      suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         # market risk
         df['market'] = 1.
 
         # suspend info
-        sql = 'select [Date], [Code], [Suspend20DayTrailing], [Suspend5DayTrailing] from TradingFlagFactor where [Date] >= {calc_start} and Date <= {calc_end} and [Code] in ({code_list_str}) order by [Date], [Code]' \
+        sql = 'select [Date], [Code], [Suspend20DayTrailing], [Suspend5DayTrailing] from TradingFlagFactor ' \
+              'where [Date] >= {calc_start} and Date <= {calc_end} and [Code] in ({code_list_str}) ' \
+              'order by [Date], [Code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
         raw_suspend_flags = pd.read_sql(sql, mf_engine)
-        df = pd.merge(df, raw_suspend_flags, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'], suffixes=('', '_y'))
+        df = pd.merge(df, raw_suspend_flags, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
+                      suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
         df.fillna(0, inplace=True)
 
