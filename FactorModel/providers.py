@@ -124,8 +124,8 @@ class DBProvider(DataFrameProvider):
 
         sql_template = "select [name] from [syscolumns] where [id] = object_id('{alpha_factor_table}')"
         raw_factor_dict = {
-        table: pd.read_sql(sql_template.format(alpha_factor_table=table), pm_engine)['name'].values[2:] for table in
-        ALPHA_FACTOR_TABLES}
+            table: pd.read_sql(sql_template.format(alpha_factor_table=table), pm_engine)['name'].values[2:] for table in
+            ALPHA_FACTOR_TABLES}
         factor_dict = dict()
         for key, values in raw_factor_dict.items():
             for v in values:
