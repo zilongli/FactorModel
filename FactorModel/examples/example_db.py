@@ -19,7 +19,7 @@ sns.set_style('ticks')
 
 start = dt.datetime.now()
 env = DBProvider('10.63.6.219', 'sa', 'A12345678!')
-env.load_data('2008-01-02', '2012-11-01', ['Growth', 'CFinc1', 'Rev5m'])
+env.load_data('2008-01-02', '2015-11-01', ['Growth', 'CFinc1', 'Rev5m'])
 trainer = ERModelTrainer(250, 1, 10)
 trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], env.source_data)
 cov_model = CovModel(env)
@@ -27,20 +27,11 @@ port_calc = ERRankPortCalc()
 simulator = Simulator(env, trainer, cov_model, port_calc)
 analyser = PnLAnalyser()
 
-print(dt.datetime.now() - start)
-start = dt.datetime.now()
-
 df1 = env.source_data
 df2 = simulator.simulate()
 
-print(dt.datetime.now() - start)
-start = dt.datetime.now()
-
 df1 = df1.loc[df2.index[0]:, :]
 df1[df2.columns] = df2
-
-print(dt.datetime.now() - start)
-start = dt.datetime.now()
 
 returns = analyser.calculate(df1)
 analyser.plot()

@@ -131,8 +131,8 @@ class ERRankPortCalc(EqualWeigthedPortCalc):
         er_values = er_table['er'].values
         total_assets = len(er_table)
         rank = rankdata(er_values)
-        in_threshold = total_assets - 100
-        out_threshold = total_assets - 300
+        in_threshold = total_assets - 99
+        out_threshold = total_assets - 299
 
         return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank)
 
