@@ -4,6 +4,7 @@ Created on 2016-8-29
 
 @author: cheng.li
 """
+import datetime as dt
 from FactorModel.utilities import combine
 from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.ermodel import ERModelTrainer
@@ -16,8 +17,9 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 sns.set_style('ticks')
 
-env = DBProvider('rm-bp1jv5xy8o62h2331o.sqlserver.rds.aliyuncs.com:3433', 'wegamekinglc', 'We051253524522')
-env.load_data('2008-01-02', '2015-11-01', ['Growth', 'CFinc1', 'Rev5m'])
+start = dt.datetime.now()
+env = DBProvider('10.63.6.219', 'sa', 'A12345678!')
+env.load_data('2008-01-02', '2012-11-01', ['Growth', 'CFinc1', 'Rev5m'])
 trainer = ERModelTrainer(250, 1, 10)
 trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], env.source_data)
 cov_model = CovModel(env)
@@ -25,11 +27,22 @@ port_calc = ERRankPortCalc()
 simulator = Simulator(env, trainer, cov_model, port_calc)
 analyser = PnLAnalyser()
 
+print(dt.datetime.now() - start)
+start = dt.datetime.now()
+
 df1 = env.source_data
 df2 = simulator.simulate()
 
-raw_data = combine(df1, df2)
+print(dt.datetime.now() - start)
+start = dt.datetime.now()
 
-returns = analyser.calculate(raw_data)
+df1 = df1.loc[df2.index[0]:, :]
+df1[df2.columns] = df2
+
+print(dt.datetime.now() - start)
+start = dt.datetime.now()
+
+returns = analyser.calculate(df1)
 analyser.plot()
+print(dt.datetime.now() - start)
 plt.show()

@@ -35,9 +35,13 @@ def load_mat(file_path: str, rows: Optional[int] =None) -> pd.DataFrame:
     return df
 
 
-def combine(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
-    df1 = df1.set_index('code', append=True, drop=False)
-    df2 = df2.set_index('code', append=True)
+def combine(df1: pd.DataFrame, df2: pd.DataFrame, inplace=False) -> pd.DataFrame:
+    if inplace == True:
+        df1.set_index('code', append=True, drop=False, inplace=inplace)
+        df2.set_index('code', append=True, inplace=inplace)
+    else:
+        df1 = df1.set_index('code', append=True, drop=False, inplace=inplace)
+        df2 = df2.set_index('code', append=True, inplace=inplace)
     df1[df2.columns] = df2
     df1.dropna(inplace=True)
     df1.reset_index(level=-1, drop=True, inplace=True)

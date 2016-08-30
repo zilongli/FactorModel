@@ -44,7 +44,7 @@ class Simulator(object):
             trading_constraints, _ = self.constraints_builder.build_constraints(this_data)
             codes = this_data.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
-            cov_matrix = self.cov_model.fetch_cov(calc_date)
+            cov_matrix = self.cov_model.fetch_cov(calc_date, this_data)
             if not model.empty and len(cov_matrix) > 0:
                 evolved_preholding = Simulator.evolve_portfolio(codes, pre_holding)
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()

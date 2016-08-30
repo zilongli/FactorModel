@@ -37,12 +37,13 @@ df2 = simulator.simulate()
 print(dt.datetime.now() - start)
 start = dt.datetime.now()
 
-raw_data = combine(df1, df2)
+df1 = df1.loc[df2.index[0]:, :]
+df1[df2.columns] = df2
 
 print(dt.datetime.now() - start)
 start = dt.datetime.now()
 
-returns = analyser.calculate(raw_data)
+returns = analyser.calculate(df2)
 analyser.plot()
 print(dt.datetime.now() - start)
 plt.show()
