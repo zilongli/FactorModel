@@ -12,10 +12,11 @@ from typing import Optional
 import datetime as dt
 import pandas as pd
 import sqlalchemy
+import pypyodbc
 from FactorModel.utilities import load_mat
 from FactorModel.utilities import format_date_to_index
 
-DB_DRIVER_TYPE = 'mssql'
+DB_DRIVER_TYPE = 'pypyodbc'
 
 ALPHA_FACTOR_TABLES = {'AlphaFactors_PROD',
                        'AlphaFactors_Difeiyue',
@@ -85,26 +86,34 @@ class DBProvider(DataFrameProvider):
                  user,
                  pwd):
         super().__init__()
-        if DB_DRIVER_TYPE == 'mssql':
-            conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
+        if DB_DRIVER_TYPE != 'pypyodbc':
+            if DB_DRIVER_TYPE == 'pymssql':
+                conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
+            elif DB_DRIVER_TYPE == 'pyodbc':
+                conn_template = 'mssql+pyodbc://{user}:{pwd}@{server}/{db_name}?driver=SQL+Server+Native+Client+11.0'
+            mf_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='MultiFactor')
+            pm_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='PortfolioManagements')
+
+            self.mf_engine = sqlalchemy.create_engine(mf_conn)
+            self.pm_engine = sqlalchemy.create_engine(pm_conn)
         else:
-            conn_template = 'mssql+pyodbc://{user}:{pwd}@{server}/{db_name}?driver=SQL+Server+Native+Client+11.0'
-        self.mf_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='MultiFactor')
-        self.pm_conn = conn_template.format(user=user, pwd=pwd, server=server, db_name='PortfolioManagements')
+            self.mf_engine = pypyodbc.connect(
+                "DRIVER={SQL Server};SERVER=10.63.6.219;UID=sa;PWD=A12345678!;DATABASE=MultiFactor")
+            self.pm_engine = pypyodbc.connect(
+                "DRIVER={SQL Server};SERVER=10.63.6.219;UID=sa;PWD=A12345678!;DATABASE=PortfolioManagements")
 
     def fetch_data(self,
                    start_date: int,
                    end_date: int,
                    alpha_factors: List[str]) -> None:
-        pm_engine = sqlalchemy.create_engine(self.pm_conn)
 
         # stock universe
-        sql = 'select * from [StockUniverse] ' \
+        sql = 'select calcDate, applyDate, Code as code from [StockUniverse] ' \
               'where [applyDate] >= {apply_start} and [applyDate] <= {apply_end} ' \
               'ORDER BY [applyDate], [code]' \
             .format(apply_start=start_date, apply_end=end_date)
 
-        stock_universe = pd.read_sql(sql, pm_engine)
+        stock_universe = pd.read_sql(sql, self.pm_engine)
 
         calc_dates = stock_universe.calcDate.unique()
         calc_start = calc_dates[0]
@@ -117,14 +126,14 @@ class DBProvider(DataFrameProvider):
               'where [date] >= {calc_start} and [date] <= {calc_end} and [code] in ({code_list_str}) ' \
               'ORDER BY [date], [code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
-        raw_risk_data = pd.read_sql(sql, pm_engine)
+        raw_risk_data = pd.read_sql(sql, self.pm_engine)
         df = pd.merge(stock_universe, raw_risk_data, how='left', left_on=['calcDate', 'code'],
                       right_on=['Date', 'Code'], suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         sql_template = "select [name] from [syscolumns] where [id] = object_id('{alpha_factor_table}')"
         raw_factor_dict = {
-            table: pd.read_sql(sql_template.format(alpha_factor_table=table), pm_engine)['name'].values[2:] for table in
+            table: pd.read_sql(sql_template.format(alpha_factor_table=table), self.pm_engine)['name'].values[2:] for table in
             ALPHA_FACTOR_TABLES}
         factor_dict = dict()
         for key, values in raw_factor_dict.items():
@@ -146,7 +155,7 @@ class DBProvider(DataFrameProvider):
                   'ORDER BY [Date], [Code]' \
                 .format(factors=factor_str, table_name=table_name, calc_start=calc_start, calc_end=calc_end,
                         code_list_str=code_list_str)
-            factor_data = pd.read_sql(sql, pm_engine)
+            factor_data = pd.read_sql(sql, self.pm_engine)
             df = pd.merge(df, factor_data, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
                           suffixes=('', '_y'))
             df.drop(['Date', 'Code'], axis=1, inplace=True)
@@ -156,7 +165,7 @@ class DBProvider(DataFrameProvider):
               'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
               'ORDER BY [Date], [Code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
-        raw_future_res = pd.read_sql(sql, pm_engine)
+        raw_future_res = pd.read_sql(sql, self.pm_engine)
         df = pd.merge(df, raw_future_res, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
                       suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
@@ -166,7 +175,7 @@ class DBProvider(DataFrameProvider):
               'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
               'ORDER BY [Date], [Code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
-        raw_future_returns = pd.read_sql(sql, pm_engine)
+        raw_future_returns = pd.read_sql(sql, self.pm_engine)
         df = pd.merge(df, raw_future_returns, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
                       suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
@@ -178,13 +187,12 @@ class DBProvider(DataFrameProvider):
         offset_start_date = start_date_dt - dt.timedelta(days=30)
         offset_end_date = end_date_dt + dt.timedelta(days=30)
 
-        mf_engine = sqlalchemy.create_engine(self.mf_conn)
         sql = 'select [Date], [Code], [Return] from [TradingInfo1] ' \
               'where [Date] >= {start_date} and [Date] <= {end_date} and [Code] in ({code_list_str}) ' \
               'order by [Date], [Code]' \
             .format(start_date=offset_start_date.strftime('%Y%m%d'), end_date=offset_end_date.strftime('%Y%m%d'),
                     code_list_str=code_list_str)
-        raw_returns = pd.read_sql(sql, mf_engine)
+        raw_returns = pd.read_sql(sql, self.mf_engine)
 
         dates_list = raw_returns.Date.unique()
         next_dates_list = [*dates_list[1:], None]
@@ -204,7 +212,7 @@ class DBProvider(DataFrameProvider):
               'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
               'order by [Date], [Code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
-        raw_index_components = pd.read_sql(sql, mf_engine)
+        raw_index_components = pd.read_sql(sql, self.mf_engine)
         raw_index_components['zz500'] /= 100.
         df = pd.merge(df, raw_index_components, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
                       suffixes=('', '_y'))
@@ -218,7 +226,7 @@ class DBProvider(DataFrameProvider):
               'where [Date] >= {calc_start} and Date <= {calc_end} and [Code] in ({code_list_str}) ' \
               'order by [Date], [Code]' \
             .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
-        raw_suspend_flags = pd.read_sql(sql, mf_engine)
+        raw_suspend_flags = pd.read_sql(sql, self.mf_engine)
         df = pd.merge(df, raw_suspend_flags, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
                       suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
@@ -236,6 +244,6 @@ class DBProvider(DataFrameProvider):
 
 
 if __name__ == "__main__":
-    db_provider = DBProvider('rm-bp1jv5xy8o62h2331o.sqlserver.rds.aliyuncs.com:3433', 'wegamekinglc', 'We051253524522')
+    db_provider = DBProvider('10.63.6.219', 'sa', 'A12345678!')
     db_provider.fetch_data(20080102, 20151101, ['Growth', 'CFinc1', 'Rev5m'])
     print(db_provider.source_data)
