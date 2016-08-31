@@ -23,7 +23,7 @@ env.load_data('2008-01-02', '2015-11-01', ['Growth', 'CFinc1', 'Rev5m'])
 trainer = ERModelTrainer(250, 1, 10)
 trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], env.source_data)
 cov_model = CovModel(env)
-port_calc = ERRankPortCalc()
+port_calc = ERRankPortCalc(100, 300)
 simulator = Simulator(env, trainer, cov_model, port_calc)
 analyser = PnLAnalyser()
 

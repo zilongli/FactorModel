@@ -120,8 +120,11 @@ class EqualWeigthedPortCalc(PortCalc):
 
 class ERRankPortCalc(EqualWeigthedPortCalc):
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self,
+                 in_threshold: int,
+                 out_threshold: int) -> None:
+        self.in_threshold = in_threshold
+        self.out_threshold = out_threshold
 
     def trade(self,
               er_table: pd.DataFrame,
@@ -131,16 +134,19 @@ class ERRankPortCalc(EqualWeigthedPortCalc):
         er_values = er_table['er'].values
         total_assets = len(er_table)
         rank = rankdata(er_values)
-        in_threshold = total_assets - 99
-        out_threshold = total_assets - 299
+        in_threshold = total_assets - self.in_threshold + 1
+        out_threshold = total_assets - self.out_threshold + 1
 
         return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank)
 
 
 class ERThresholdPortCalc(EqualWeigthedPortCalc):
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self,
+                 in_threshold: float,
+                 out_threshold: float) -> None:
+        self.in_threshold = in_threshold
+        self.out_threshold = out_threshold
 
     def trade(self,
               er_table: pd.DataFrame,
@@ -148,8 +154,8 @@ class ERThresholdPortCalc(EqualWeigthedPortCalc):
               **kwargs) -> pd.DataFrame:
 
         total_assets = len(er_table)
-        in_threshold = np.percentile(er_table['er'], 100. * (total_assets - 100) / total_assets)
-        out_threshold = 0.
+        in_threshold = self.in_threshold
+        out_threshold = self.out_threshold
         rank = er_table['er'].values
 
         return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank)

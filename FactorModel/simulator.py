@@ -50,7 +50,11 @@ class Simulator(object):
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                positions = self.port_calc.trade(er_table, evolved_preholding, cov=cov_matrix, constraints=trading_constraints)
+                positions = self.rebalance(apply_date,
+                                           er_table,
+                                           evolved_preholding,
+                                           cov=cov_matrix, 
+                                           constraints=trading_constraints)
                 positions['preHolding'] = evolved_preholding['todayHolding']
                 positions['suspend'] = trading_constraints.suspend
                 self.log_info(apply_date, calc_date, positions)
@@ -58,6 +62,9 @@ class Simulator(object):
                 pre_holding = positions[['todayHolding']]
 
         return self.info_keeper.info_view()
+
+    def rebalance(self, apply_date, er_table, pre_holding, **kwargs):
+        return self.port_calc.trade(er_table, pre_holding, **kwargs)
 
     @staticmethod
     def evolve_portfolio(codes, pre_holding):

@@ -7,13 +7,14 @@ Created on 2016-8-16
 
 import bisect
 from typing import List
+from typing import Optional
 import numpy as np
 import pandas as pd
 
 
 class ERModel(object):
 
-    def __init__(self, model_type: str = 'ols') -> None:
+    def __init__(self, model_type: Optional[str] = 'ols') -> None:
         self.model_type = model_type
         self.model_params = None
 
