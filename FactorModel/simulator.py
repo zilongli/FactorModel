@@ -46,7 +46,7 @@ class Simulator(object):
             model = self.model_factory.fetch_model(apply_date)
             cov_matrix = self.cov_model.fetch_cov(calc_date, this_data)
             if not model.empty and len(cov_matrix) > 0:
-                evolved_preholding = Simulator.evolve_portfolio(codes, pre_holding)
+                evolved_preholding, evolved_bm = Simulator.evolve_portfolio(codes, pre_holding, this_data)
                 factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
@@ -55,24 +55,38 @@ class Simulator(object):
                                            evolved_preholding,
                                            cov=cov_matrix, 
                                            constraints=trading_constraints)
-                positions['preHolding'] = evolved_preholding['todayHolding']
-                positions['suspend'] = trading_constraints.suspend
+
+                self.aggregate_data(pre_holding, evolved_preholding, trading_constraints, positions)
                 self.log_info(apply_date, calc_date, positions)
 
                 pre_holding = positions[['todayHolding']]
 
         return self.info_keeper.info_view()
 
+    def aggregate_data(self, pre_holding, evolved_preholding, trading_constraints, positions):
+        if not pre_holding.empty:
+            positions['preHolding'] = pre_holding['todayHolding']
+        else:
+            positions['preHolding'] = 0.
+        positions['evolvedPreHolding'] = evolved_preholding['todayHolding']
+        positions['suspend'] = trading_constraints.suspend
+
     def rebalance(self, apply_date, er_table, pre_holding, **kwargs):
         return self.port_calc.trade(er_table, pre_holding, **kwargs)
 
     @staticmethod
-    def evolve_portfolio(codes, pre_holding):
+    def evolve_portfolio(codes, pre_holding, repo_data):
         evolved_preholding = pd.DataFrame(data=np.zeros(len(codes)), index=codes, columns=['todayHolding'])
+        returns = repo_data['dailyReturn'].values
         if not pre_holding.empty:
             evolved_preholding['todayHolding'] = pre_holding['todayHolding']
             evolved_preholding.fillna(0., inplace=True)
-        return evolved_preholding
+            values = evolved_preholding['todayHolding'].values
+            cash = 1.0 - np.sum(evolved_preholding['todayHolding'])
+            values *= (1. + returns)
+            values /= cash + np.sum(values)
+            evolved_preholding['todayHolding'] = values
+        return evolved_preholding, None
 
     def log_info(self,
                  apply_date: pd.Timestamp,
