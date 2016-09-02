@@ -11,28 +11,6 @@ from typing import Any
 import logging
 import pandas as pd
 import numpy as np
-import h5py
-
-
-def load_mat(file_path: str, rows: Optional[int] =None) -> pd.DataFrame:
-    f = h5py.File(file_path)
-
-    def read_cols():
-        headers = []
-        for ref in f.get('cols')[:][:]:
-            obj = f[ref[0]]
-            head = ''.join(chr(i[0]) for i in obj[:])
-            headers.append(head)
-        return headers
-
-    headers = read_cols()
-    df = pd.DataFrame(data=f.get('data')[:, :rows].T,
-                      columns=headers)
-    format_date_to_index(df, 'applyDate')
-    format_date_to_index(df, 'calcDate')
-    df['code'] = df['code'].astype(int)
-    df.set_index(['applyDate'], drop=False, inplace=True)
-    return df
 
 
 def combine(df1: pd.DataFrame, df2: pd.DataFrame, inplace=False) -> pd.DataFrame:

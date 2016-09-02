@@ -7,13 +7,13 @@ Created on 2016-8-16
 
 import abc
 import copy
+import pickle
 from typing import List
 from typing import Optional
 from typing import Tuple
 import datetime as dt
 import pandas as pd
 import sqlalchemy
-from FactorModel.utilities import load_mat
 from FactorModel.utilities import format_date_index
 from FactorModel.utilities import format_date_to_index
 
@@ -91,9 +91,16 @@ class DataFrameProvider(Provider):
 
 
 class FileProvider(DataFrameProvider):
-    def __init__(self, file_path: str, rows: Optional[int] = None):
+    def __init__(self, file_path: str):
         super().__init__()
-        self.repository = load_mat(file_path, rows)
+        with open(file_path, 'rb') as f:
+            datas = pickle.load(f)
+            self.repository = datas['repository']
+            self.corr_mat = datas['corr_mat']
+            self.factor_vol = datas['factor_vol']
+            self.risk_level = datas['risk_level']
+            self.risk_style = datas['risk_style']
+            self.date_table = datas['date_table']
         self.calc_date_list = self.repository.calcDate.unique()
         self.apply_date_list = self.repository.applyDate.unique()
 
