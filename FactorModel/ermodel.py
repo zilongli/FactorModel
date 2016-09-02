@@ -25,6 +25,9 @@ class ERModel(object):
     def calculate_er(self, factor_values: np.ndarray) -> np.ndarray:
         return factor_values @ self.model_params
 
+    def __str__(self):
+        return str(self.model_params)
+
 
 class ERModelTrainer(object):
 
@@ -52,7 +55,9 @@ class ERModelTrainer(object):
         calc_dates = train_data.calcDate.unique()
         model_data = self._calc_model_dates(apply_dates, calc_dates)
 
-        train_data = train_data[[self.yield_name, *factors]]
+        self._normalize(train_data, self.yield_name)
+
+        train_data = train_data[[self.yield_name + '_norm', *factors]]
 
         model_data['model'] = None
         for i in range(len(model_data)):
@@ -60,6 +65,10 @@ class ERModelTrainer(object):
             model = self._train(dates, train_data)
             model_data.loc[dates.name, 'model'] = model
         self.models = model_data
+
+    def _normalize(self, train_data, field):
+        res = train_data[['applyDate', field]].groupby('applyDate').transform(lambda x: x / x.std())
+        train_data[field + '_norm'] = res[field]
 
     def _train(self,
                model_dates: pd.Series,
