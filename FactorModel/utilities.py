@@ -36,7 +36,7 @@ def load_mat(file_path: str, rows: Optional[int] =None) -> pd.DataFrame:
 
 
 def combine(df1: pd.DataFrame, df2: pd.DataFrame, inplace=False) -> pd.DataFrame:
-    if inplace == True:
+    if inplace:
         df1.set_index('code', append=True, drop=False, inplace=inplace)
         df2.set_index('code', append=True, inplace=inplace)
     else:

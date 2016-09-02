@@ -41,6 +41,7 @@ class DataFrameProvider(Provider):
         self.factor_vol = pd.DataFrame()
         self.risk_level = pd.DataFrame()
         self.risk_style = pd.DataFrame()
+        self.date_table = pd.DataFrame()
 
     @property
     def source_data(self) -> pd.DataFrame:
@@ -112,6 +113,14 @@ class DBProvider(DataFrameProvider):
 
         self.mf_engine = sqlalchemy.create_engine(mf_conn)
         self.pm_engine = sqlalchemy.create_engine(pm_conn)
+
+    def load_date_table(self,
+                        start_date: int,
+                        end_date: int) -> None:
+        sql = 'select [Date] as [date], EOM as eom, EOW as eow from Timeline ' \
+              'where [Date] >= {start_date} and [Date] <= {end_date}'.format(start_date=start_date, end_date=end_date)
+        self.date_table = pd.read_sql(sql, self.mf_engine)
+        format_date_to_index(self.date_table, 'date', as_index=True)
 
     def load_repository_data(self,
                               start_date: int,
@@ -304,6 +313,7 @@ class DBProvider(DataFrameProvider):
         end_date = int(end_date.replace('-', ''))
         calc_start, calc_end = self.load_repository_data(start_date, end_date, alpha_factors)
         self.load_cov_data(calc_start, calc_end)
+        self.load_date_table(start_date, end_date)
 
 
 if __name__ == "__main__":

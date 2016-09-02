@@ -11,6 +11,7 @@ from FactorModel.providers import Provider
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.covmodel import CovModel
 from FactorModel.portcalc import PortCalc
+from FactorModel.schedule import Scheduler
 from FactorModel.infokeeper import InfoKeeper
 from FactorModel.regulator import Regulator
 from FactorModel.facts import INDUSTRY_LIST
@@ -22,11 +23,13 @@ class Simulator(object):
                  provider: Provider,
                  model_factory: ERModelTrainer,
                  cov_model: CovModel,
+                 scheduler: Scheduler,
                  port_calc: PortCalc) -> None:
         self.model_factory = model_factory
         self.provider = iter(provider)
         self.port_calc = port_calc
         self.info_keeper = InfoKeeper()
+        self.scheduler = scheduler
         self.cov_model = cov_model
         self.constraints_builder = Regulator(INDUSTRY_LIST)
 
@@ -72,7 +75,10 @@ class Simulator(object):
         positions['suspend'] = trading_constraints.suspend
 
     def rebalance(self, apply_date, er_table, pre_holding, **kwargs):
-        return self.port_calc.trade(er_table, pre_holding, **kwargs)
+        if self.scheduler.is_rebalance(apply_date):
+            return self.port_calc.trade(er_table, pre_holding, **kwargs)
+        else:
+            return pre_holding.copy(deep=True)
 
     @staticmethod
     def evolve_portfolio(codes, pre_holding, repo_data):
