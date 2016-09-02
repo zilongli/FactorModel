@@ -87,7 +87,7 @@ class EqualWeigthedPortCalc(PortCalc):
         rtn_table = er_table.copy(deep=True)
         total_assets = len(rtn_table)
 
-        if np.sum(pre_holding['todayHolding']) > 0 and not rebalance:
+        if np.sum(pre_holding['todayHolding']) > 0:
             # match pre_holding to today's codes
             rtn_table.loc[:, 'todayHolding'] = 0.
             rtn_table['todayHolding'] = pre_holding['todayHolding']
@@ -95,20 +95,29 @@ class EqualWeigthedPortCalc(PortCalc):
             sell_candiates = np.array((rank <= out_threshold) & (rtn_table['todayHolding'] > 0.))
             buy_candidates = np.array((rank >= in_threshold) & (rtn_table['todayHolding'] == 0.))
 
-            total_sell_position = np.sum(rtn_table.loc[sell_candiates, 'todayHolding']) + max(1.0 - np.sum(rtn_table['todayHolding']), 0.)
-            if total_sell_position == 0:
-                return rtn_table
-
             rtn_table['rank'] = rank
             filter_table = rtn_table[buy_candidates].sort_values('rank', ascending=False)
             filter_table['todayHolding'] = 0.
 
             rtn_table.loc[sell_candiates, 'todayHolding'] = 0.
-            to_buy_in = min(math.ceil(total_sell_position / 0.01), len(filter_table))
-            to_buy_in_list = filter_table.index[:to_buy_in]
 
-            filter_table.loc[to_buy_in_list, 'todayHolding'] = total_sell_position / to_buy_in
-            rtn_table.loc[filter_table.index, 'todayHolding'] = filter_table['todayHolding'].values
+            if not self.rebalance:
+                total_sell_position = np.sum(rtn_table.loc[sell_candiates, 'todayHolding']) + max(1.0 - np.sum(rtn_table['todayHolding']), 0.)
+                if total_sell_position == 0:
+                    return rtn_table
+
+                to_buy_in = min(math.ceil(total_sell_position / 0.01), len(filter_table))
+                to_buy_in_list = filter_table.index[:to_buy_in]
+
+                filter_table.loc[to_buy_in_list, 'todayHolding'] = total_sell_position / to_buy_in
+                rtn_table.loc[filter_table.index, 'todayHolding'] = filter_table['todayHolding'].values
+            else:
+                to_keep = np.array((rank > out_threshold) & (rtn_table['todayHolding'] > 0.))
+                to_buy_in = min(100 - np.sum(to_keep), len(filter_table))
+                to_buy_in_list = list(filter_table.index[:to_buy_in])
+                to_keep_list = list(rtn_table.index[to_keep])
+                basket = to_buy_in_list + to_keep_list
+                rtn_table.loc[basket, 'todayHolding'] = 1.0 / len(basket)
             del rtn_table['rank']
         else:
             flags = np.array(rank >= in_threshold)
