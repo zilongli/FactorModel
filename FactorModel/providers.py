@@ -197,7 +197,7 @@ class DBProvider(DataFrameProvider):
         offset_start_date = start_date_dt - dt.timedelta(days=30)
         offset_end_date = end_date_dt + dt.timedelta(days=30)
 
-        sql = 'select [Date], [Code], [Return] from [TradingInfo1] ' \
+        sql = 'select [Date], [Code], [Return] as dailyReturn from [TradingInfo1] ' \
               'where [Date] >= {start_date} and [Date] <= {end_date} and [Code] in ({code_list_str}) ' \
               'order by [Date], [Code]' \
             .format(start_date=offset_start_date.strftime('%Y%m%d'), end_date=offset_end_date.strftime('%Y%m%d'),
@@ -210,9 +210,9 @@ class DBProvider(DataFrameProvider):
 
         dates_code_matched = pd.merge(raw_returns[['Date', 'Code']], dates_table, how='left', left_on=['Date'],
                                       right_on=['this'])
-        next_returns = pd.merge(dates_code_matched, raw_returns[['Date', 'Code', 'Return']], how='left',
+        next_returns = pd.merge(dates_code_matched, raw_returns[['Date', 'Code', 'dailyReturn']], how='left',
                                 left_on=['next', 'Code'], right_on=['Date', 'Code'])
-        raw_returns['nextReturn1day'] = next_returns['Return']
+        raw_returns['nextReturn1day'] = next_returns['dailyReturn']
         df = pd.merge(df, raw_returns, how='left', left_on=['applyDate', 'code'], right_on=['Date', 'Code'],
                       suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
