@@ -46,12 +46,3 @@ class Regulator(object):
         regulator_constrains = Constraints(lb=lb, ub=ub, lc=lc, lct=lct, suspend=suspended_flags.values)
         return trading_constrains, regulator_constrains
 
-
-if __name__ == "__main__":
-    from FactorModel.utilities import load_mat
-    from FactorModel.facts import INDUSTRY_LIST
-    df = load_mat("d:/data.mat", rows=20000)
-    data = df.loc['2008-01-03', :]
-
-    reg = Regulator(INDUSTRY_LIST)
-    reg.build_constraints(data)

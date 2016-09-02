@@ -44,8 +44,8 @@ class DataFrameProvider(Provider):
         self.date_table = pd.DataFrame()
 
     def archive(self, file_path: str) -> None:
-        data_dict = {attr: getattr(self, attr) \
-                     for attr in self.__dict__ \
+        data_dict = {attr: getattr(self, attr)
+                     for attr in self.__dict__
                      if isinstance(getattr(self, attr), pd.DataFrame)}
 
         with open(file_path, 'wb') as f:

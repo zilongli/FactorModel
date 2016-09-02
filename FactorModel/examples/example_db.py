@@ -12,10 +12,13 @@ from FactorModel.covmodel import CovModel
 from FactorModel.simulator import Simulator
 from FactorModel.providers import DBProvider
 from FactorModel.analysers import PnLAnalyser
-
-import seaborn as sns
 from matplotlib import pyplot as plt
-sns.set_style('ticks')
+
+try:
+    import seaborn as sns
+    sns.set_style('ticks')
+except ImportError:
+    pass
 
 start = dt.datetime.now()
 env = DBProvider('10.63.6.219', 'sa', 'A12345678!')

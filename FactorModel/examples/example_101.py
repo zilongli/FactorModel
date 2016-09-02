@@ -12,10 +12,13 @@ from FactorModel.covmodel import CovModel
 from FactorModel.simulator import Simulator
 from FactorModel.providers import FileProvider
 from FactorModel.analysers import PnLAnalyser
-import seaborn as sns
 from matplotlib import pyplot as plt
 
-sns.set_style('ticks')
+try:
+    import seaborn as sns
+    sns.set_style('ticks')
+except ImportError:
+    pass
 
 env = FileProvider("d:/data.pkl")
 trainer = ERModelTrainer(250, 1, 10)
