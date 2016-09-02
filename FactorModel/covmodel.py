@@ -5,7 +5,6 @@ Created on 2016-8-30
 @author: cheng.li
 """
 
-from typing import List
 import numpy as np
 import pandas as pd
 from FactorModel.providers import Provider
@@ -18,11 +17,9 @@ class CovModel(object):
     def __init__(self, provider: Provider) -> None:
         self.provider = provider
 
-    def  fetch_cov(self, calc_date: str, repo_data: pd.DataFrame) -> np.array:
+    def fetch_cov(self, calc_date: str, repo_data: pd.DataFrame) -> np.array:
         calc_date = pd.Timestamp(calc_date)
         try:
-            corr_mat = self.provider.fetch_factor_corr(calc_date)
-            factor_vol = self.provider.fetch_factor_vol(calc_date)
             sr_level = self.provider.fetch_risk_level(calc_date)
             sr_style = self.provider.fetch_risk_style(calc_date, INDUSTRY_LIST + STYLE_LIST)
         except TypeError:
