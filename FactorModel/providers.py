@@ -43,6 +43,14 @@ class DataFrameProvider(Provider):
         self.risk_style = pd.DataFrame()
         self.date_table = pd.DataFrame()
 
+    def archive(self, file_path: str) -> None:
+        data_dict = {attr: getattr(self, attr) \
+                     for attr in self.__dict__ \
+                     if isinstance(getattr(self, attr), pd.DataFrame)}
+
+        with open(file_path, 'wb') as f:
+            pickle.dump(data_dict, f)
+
     @property
     def source_data(self) -> pd.DataFrame:
         return self.repository.copy(deep=True)
