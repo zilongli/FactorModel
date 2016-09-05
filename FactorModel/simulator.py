@@ -5,6 +5,8 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
+from typing import List
+from typing import Tuple
 import numpy as np
 import pandas as pd
 from FactorModel.providers import Provider
@@ -12,9 +14,11 @@ from FactorModel.ermodel import ERModelTrainer
 from FactorModel.covmodel import CovModel
 from FactorModel.portcalc import PortCalc
 from FactorModel.schedule import Scheduler
+from FactorModel.regulator import Constraints
 from FactorModel.infokeeper import InfoKeeper
 from FactorModel.regulator import Regulator
 from FactorModel.facts import INDUSTRY_LIST
+from FactorModel.facts import BENCHMARK
 
 
 class Simulator(object):
@@ -56,22 +60,28 @@ class Simulator(object):
                 positions = self.rebalance(apply_date,
                                            er_table,
                                            evolved_preholding,
-                                           cov=cov_matrix, 
+                                           cov=cov_matrix,
                                            constraints=trading_constraints)
 
-                self.aggregate_data(pre_holding, evolved_preholding, trading_constraints, positions)
+                self.aggregate_data(pre_holding, evolved_preholding, evolved_bm, trading_constraints, positions)
                 self.log_info(apply_date, calc_date, positions)
 
                 pre_holding = positions[['todayHolding']]
 
         return self.info_keeper.info_view()
 
-    def aggregate_data(self, pre_holding, evolved_preholding, trading_constraints, positions):
+    def aggregate_data(self,
+                       pre_holding: pd.DataFrame,
+                       evolved_preholding: pd.DataFrame,
+                       evolved_bm: pd.DataFrame,
+                       trading_constraints: Constraints,
+                       positions: pd.DataFrame) -> None:
         if not pre_holding.empty:
             positions['preHolding'] = pre_holding['todayHolding']
         else:
             positions['preHolding'] = 0.
         positions['evolvedPreHolding'] = evolved_preholding['todayHolding']
+        positions[BENCHMARK] = evolved_bm[BENCHMARK]
         positions['suspend'] = trading_constraints.suspend
 
     def rebalance(self, apply_date, er_table, pre_holding, **kwargs):
@@ -81,18 +91,24 @@ class Simulator(object):
             return pre_holding.copy(deep=True)
 
     @staticmethod
-    def evolve_portfolio(codes, pre_holding, repo_data):
+    def evolve_portfolio(codes: List[int],
+                         pre_holding: pd.DataFrame,
+                         repo_data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         evolved_preholding = pd.DataFrame(data=np.zeros(len(codes)), index=codes, columns=['todayHolding'])
         returns = repo_data['dailyReturn'].values
         if not pre_holding.empty:
             evolved_preholding['todayHolding'] = pre_holding['todayHolding']
             evolved_preholding.fillna(0., inplace=True)
             values = evolved_preholding['todayHolding'].values
-            cash = 1.0 - np.sum(evolved_preholding['todayHolding'])
+            cash = 1. - np.sum(evolved_preholding['todayHolding'])
             values *= (1. + returns)
             values /= cash + np.sum(values)
-            evolved_preholding['todayHolding'] = values
-        return evolved_preholding, None
+
+        values = repo_data[BENCHMARK].values.copy()
+        values *= (1. + returns)
+        values /= np.sum(values)
+        evolved_bm = pd.DataFrame(data=values, index=codes, columns=[BENCHMARK])
+        return evolved_preholding, evolved_bm
 
     def log_info(self,
                  apply_date: pd.Timestamp,

@@ -10,6 +10,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from collections import namedtuple
+from FactorModel.facts import BENCHMARK
 
 
 Constraints = namedtuple('Constraints', ['lb', 'ub', 'lc', 'lct', 'suspend'])
@@ -24,7 +25,7 @@ class Regulator(object):
         industry_factor = data[self.industry_list].values
         assets_number = len(data)
 
-        benchmark_weights = data['zz500'].values
+        benchmark_weights = data[BENCHMARK].values.copy()
         benchmark_weights.shape = -1, 1
 
         suspended_flags = (data['Suspend20DayTrailing'] < 0.8) | (data['Suspend5DayTrailing'] < 0.9)
