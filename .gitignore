@@ -9,3 +9,5 @@ data/*
 *.log
 FactorModel/notebooks/*
 notebooks/*
+*.pdf
+*.xlsx
