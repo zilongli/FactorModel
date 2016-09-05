@@ -39,9 +39,10 @@ class ERModelTrainer(object):
         self.factor_names = None
         self.yield_name = 'D' + str(self.decay) + 'Res'
 
-    def fetch_model(self, date: pd.Timestamp) -> pd.Series:
+    def fetch_model(self,
+                    date: pd.Timestamp) -> pd.Series:
         i = bisect.bisect_left(self.models.index, date)
-        if self.models.index[i] == date:
+        if i < len(self.models.index) and self.models.index[i] == date:
             return self.models.iloc[i, :]
         else:
             if i - 1 >= 0:
@@ -51,11 +52,13 @@ class ERModelTrainer(object):
 
     def train_models(self,
                      factors: List[str],
-                     train_data: pd.DataFrame) -> None:
+                     train_data: pd.DataFrame,
+                     train_dates: List[pd.Timestamp]=None) -> None:
         self.factor_names = factors
-        apply_dates = train_data.applyDate.unique()
-        calc_dates = train_data.calcDate.unique()
-        model_data = self._calc_model_dates(apply_dates, calc_dates)
+        apply_dates = list(train_data.applyDate.unique())
+        calc_dates = list(train_data.calcDate.unique())
+
+        model_data = self._calc_model_dates(train_dates, apply_dates, calc_dates)
 
         self._normalize(train_data, self.yield_name)
 
@@ -92,6 +95,7 @@ class ERModelTrainer(object):
         return model
 
     def _calc_model_dates(self,
+                          train_dates,
                           apply_dates: List[pd.Timestamp],
                           calc_dates: List[pd.Timestamp]) -> pd.DataFrame:
         model_dates = []
@@ -99,7 +103,13 @@ class ERModelTrainer(object):
         train_start_dates = []
         train_end_dates = []
 
-        for i, apply_date in enumerate(apply_dates):
+        if not train_dates:
+            train_dates = apply_dates
+        else:
+            train_dates = map(lambda x: np.datetime64(x), train_dates)
+
+        for apply_date in train_dates:
+            i = apply_dates.index(apply_date)
             factor_end = i - self.decay
             factor_start = i - self.win_size - self.decay
             if factor_start >= 0 and factor_start % self.periods == 0:
