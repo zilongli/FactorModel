@@ -54,7 +54,7 @@ class Simulator(object):
             cov_matrix = self.cov_model.fetch_cov(calc_date, this_data)
             if not model.empty and len(cov_matrix) > 0:
                 evolved_preholding, evolved_bm = Simulator.evolve_portfolio(codes, pre_holding, this_data)
-                factor_values = this_data[['Growth', 'CFinc1', 'Rev5m']].as_matrix()
+                factor_values = this_data[self.model_factory.factor_names].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
                 positions = self.rebalance(apply_date,
@@ -63,7 +63,7 @@ class Simulator(object):
                                            cov=cov_matrix,
                                            constraints=trading_constraints)
 
-                self.aggregate_data(pre_holding, evolved_preholding, evolved_bm, trading_constraints, positions)
+                self.aggregate_data(er_table, pre_holding, evolved_preholding, evolved_bm, trading_constraints, positions)
                 self.log_info(apply_date, calc_date, positions)
 
                 pre_holding = positions[['todayHolding']]
@@ -71,6 +71,7 @@ class Simulator(object):
         return self.info_keeper.info_view()
 
     def aggregate_data(self,
+                       er_table: pd.DataFrame,
                        pre_holding: pd.DataFrame,
                        evolved_preholding: pd.DataFrame,
                        evolved_bm: pd.DataFrame,
@@ -80,8 +81,9 @@ class Simulator(object):
             positions['preHolding'] = pre_holding['todayHolding']
         else:
             positions['preHolding'] = 0.
+        positions['er'] = er_table['er']
         positions['evolvedPreHolding'] = evolved_preholding['todayHolding']
-        positions[BENCHMARK] = evolved_bm[BENCHMARK]
+        positions['evolvedBMWeight'] = evolved_bm[BENCHMARK]
         positions['suspend'] = trading_constraints.suspend
 
     def rebalance(self, apply_date, er_table, pre_holding, **kwargs):

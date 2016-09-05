@@ -4,7 +4,6 @@ Created on 2016-8-29
 
 @author: cheng.li
 """
-import datetime as dt
 from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
@@ -20,11 +19,11 @@ try:
 except ImportError:
     pass
 
-start = dt.datetime.now()
+factor_names = ['Growth', 'HRL', 'R5MOHRL']
 env = DBProvider('10.63.6.219', 'sa', 'A12345678!')
-env.load_data('2008-01-02', '2011-11-01', ['Growth', 'CFinc1', 'Rev5m'])
+env.load_data('2008-01-02', '2015-11-01', factor_names)
 trainer = ERModelTrainer(250, 1, 10)
-trainer.train_models(['Growth', 'CFinc1', 'Rev5m'], env.source_data)
+trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)
 port_calc = ERRankPortCalc(100, 101)
 scheduler = Scheduler(env, 'weekly')
@@ -39,5 +38,6 @@ df1[df2.columns] = df2
 
 returns = analyser.calculate(df1)
 analyser.plot()
-print(dt.datetime.now() - start)
 plt.show()
+
+env.archive('d:/data.pkl')

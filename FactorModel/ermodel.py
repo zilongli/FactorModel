@@ -36,6 +36,7 @@ class ERModelTrainer(object):
         self.periods = periods
         self.decay = decay
         self.models = None
+        self.factor_names = None
         self.yield_name = 'D' + str(self.decay) + 'Res'
 
     def fetch_model(self, date: pd.Timestamp) -> pd.Series:
@@ -51,6 +52,7 @@ class ERModelTrainer(object):
     def train_models(self,
                      factors: List[str],
                      train_data: pd.DataFrame) -> None:
+        self.factor_names = factors
         apply_dates = train_data.applyDate.unique()
         calc_dates = train_data.calcDate.unique()
         model_data = self._calc_model_dates(apply_dates, calc_dates)

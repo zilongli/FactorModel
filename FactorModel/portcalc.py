@@ -81,8 +81,7 @@ class EqualWeigthedPortCalc(PortCalc):
                               pre_holding: pd.DataFrame,
                               in_threshold: float,
                               out_threshold: float,
-                              rank: np.array,
-                              rebalance: bool) -> pd.DataFrame:
+                              rank: np.array) -> pd.DataFrame:
 
         rtn_table = er_table.copy(deep=True)
         total_assets = len(rtn_table)
@@ -149,7 +148,7 @@ class ERRankPortCalc(EqualWeigthedPortCalc):
         in_threshold = total_assets - self.in_threshold + 1
         out_threshold = total_assets - self.out_threshold + 1
 
-        return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank, self.rebalance)
+        return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank)
 
 
 class ERThresholdPortCalc(EqualWeigthedPortCalc):
@@ -171,4 +170,4 @@ class ERThresholdPortCalc(EqualWeigthedPortCalc):
         out_threshold = self.out_threshold
         rank = er_table['er'].values
 
-        return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank, self.rebalance)
+        return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank)
