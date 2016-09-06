@@ -8,8 +8,8 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 from pandas.io.excel import ExcelWriter
-from FactorModel.performance import PerfAttribute
-from FactorModel.performance import PerfAttribute2
+from FactorModel.performance import PerfAttributeLOO
+from FactorModel.performance import PerfAttributeAOI
 from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
@@ -42,10 +42,10 @@ df1[df2.columns] = df2
 
 from matplotlib import pyplot as plt
 
-attributer = PerfAttribute()
+attributer = PerfAttributeLOO()
 attributer.analysis(trainer, scheduler, port_calc, df1)
 
-attributer2 = PerfAttribute2()
+attributer2 = PerfAttributeAOI()
 attributer2.analysis(trainer, scheduler, port_calc, df1)
 
 attributer.plot()
@@ -56,6 +56,6 @@ plt.title('Performance Attribution (Add One In)')
 
 plt.show()
 
-#with ExcelWriter('result.xlsx') as wb:
-#    attributer.report.to_excel(wb, 'loo')
-#    attributer2.report.to_excel(wb, 'aoi')
+with ExcelWriter('result2.xlsx') as wb:
+    attributer.report.to_excel(wb, 'loo')
+    attributer2.report.to_excel(wb, 'aoi')
