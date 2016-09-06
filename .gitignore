@@ -1,13 +1,14 @@
 # top directory only
-build/*
-dist/*
-FactorModel.egg-info/*
-.idea/*
-*.pyc
-data/*
 *.csv
 *.log
-FactorModel/notebooks/*
-notebooks/*
 *.pdf
+*.png
+*.pyc
 *.xlsx
+.idea/*
+build/*
+data/*
+dist/*
+FactorModel.egg-info/*
+notebooks/*
+FactorModel/notebooks/*
