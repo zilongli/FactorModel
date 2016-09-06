@@ -48,13 +48,16 @@ class Simulator(object):
 
             print(apply_date)
 
-            trading_constraints, _ = self.constraints_builder.build_constraints(this_data)
+            trading_constraints, _ = \
+                self.constraints_builder.build_constraints(this_data)
             codes = this_data.code.astype(int)
             model = self.model_factory.fetch_model(apply_date)
             cov_matrix = self.cov_model.fetch_cov(calc_date, this_data)
             if not model.empty and len(cov_matrix) > 0:
-                evolved_preholding, evolved_bm = Simulator.evolve_portfolio(codes, pre_holding, this_data)
-                factor_values = this_data[self.model_factory.factor_names].as_matrix()
+                evolved_preholding, evolved_bm = \
+                    Simulator.evolve_portfolio(codes, pre_holding, this_data)
+                factor_values = \
+                    this_data[self.model_factory.factor_names].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
                 positions = self.rebalance(apply_date,
@@ -63,7 +66,13 @@ class Simulator(object):
                                            cov=cov_matrix,
                                            constraints=trading_constraints)
 
-                self.aggregate_data(er_table, pre_holding, evolved_preholding, evolved_bm, trading_constraints, positions)
+                self.aggregate_data(
+                    er_table,
+                    pre_holding,
+                    evolved_preholding,
+                    evolved_bm,
+                    trading_constraints,
+                    positions)
                 self.log_info(apply_date, calc_date, positions)
 
                 pre_holding = positions[['todayHolding']]
@@ -95,8 +104,10 @@ class Simulator(object):
     @staticmethod
     def evolve_portfolio(codes: List[int],
                          pre_holding: pd.DataFrame,
-                         repo_data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        evolved_preholding = pd.DataFrame(data=np.zeros(len(codes)), index=codes, columns=['todayHolding'])
+                         repo_data: pd.DataFrame) \
+            -> Tuple[pd.DataFrame, pd.DataFrame]:
+        evolved_preholding = pd.DataFrame(
+            data=np.zeros(len(codes)), index=codes, columns=['todayHolding'])
         returns = repo_data['dailyReturn'].values
         if not pre_holding.empty:
             evolved_preholding['todayHolding'] = pre_holding['todayHolding']
@@ -109,7 +120,8 @@ class Simulator(object):
         values = repo_data[BENCHMARK].values.copy()
         values *= (1. + returns)
         values /= np.sum(values)
-        evolved_bm = pd.DataFrame(data=values, index=codes, columns=[BENCHMARK])
+        evolved_bm = pd.DataFrame(
+            data=values, index=codes, columns=[BENCHMARK])
         return evolved_preholding, evolved_bm
 
     def log_info(self,

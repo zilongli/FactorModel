@@ -21,7 +21,9 @@ class CovModel(object):
         calc_date = pd.Timestamp(calc_date)
         try:
             sr_level = self.provider.fetch_risk_level(calc_date)
-            sr_style = self.provider.fetch_risk_style(calc_date, INDUSTRY_LIST + STYLE_LIST)
+            sr_style = self.provider.fetch_risk_style(
+                calc_date,
+                INDUSTRY_LIST + STYLE_LIST)
         except TypeError:
             return np.array([])
 
@@ -29,7 +31,11 @@ class CovModel(object):
         style_factor_loading = repo_data[STYLE_LIST].values
 
         assets_number = len(repo_data)
-        factor_loading = np.concatenate([np.ones((assets_number, 1)), ind_factor_loading, style_factor_loading], axis=1)
+        factor_loading = np.concatenate(
+            [np.ones((assets_number, 1)),
+                ind_factor_loading,
+                style_factor_loading],
+            axis=1)
 
         res_vols = sr_level * np.exp(sr_style @ factor_loading[:, 1:].T)
         return np.diag(np.power(res_vols, 2))

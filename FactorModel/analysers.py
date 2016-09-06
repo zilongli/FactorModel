@@ -24,14 +24,18 @@ class PnLAnalyser(object):
             returns = data.loc[date, ['nextReturn1day', 'evolvedBMWeight']]
             weights = data.loc[date, 'todayHolding']
             pre_weights = data.loc[date, 'preHolding']
-            this_day_return = returns['nextReturn1day'].values.T @ (weights.values - returns['evolvedBMWeight'].values)
-            this_day_tc = np.sum(np.abs(weights.values - pre_weights.values)) * 0.002
+            this_day_return = returns['nextReturn1day'].values.T \
+                @ (weights.values - returns['evolvedBMWeight'].values)
+            this_day_tc = np.sum(np.abs(weights.values - pre_weights.values)) \
+                * 0.002
             everyday_return.append(this_day_return)
             everyday_tc.append(this_day_tc)
             everyday_return_after_tc.append(this_day_return - this_day_tc)
-        return_table = pd.DataFrame(data=np.array([everyday_return, everyday_return_after_tc, everyday_tc]).T,
-                                    index=all_dates,
-                                    columns=['pnl', 'pnl - tc', 'tc'])
+        return_table = pd.DataFrame(
+            data=np.array(
+                [everyday_return, everyday_return_after_tc, everyday_tc]).T,
+            index=all_dates,
+            columns=['pnl', 'pnl - tc', 'tc'])
         self.report = return_table
         return return_table.copy()
 

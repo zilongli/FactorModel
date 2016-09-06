@@ -269,5 +269,3 @@ class PerfAttributeFocusAOI(PerfAttributeBase):
         filtered_p_holding = p_holding.copy()
         filtered_p_holding[null_assets, :] = 0.
         return p_holding, filtered_p_holding
-
-

@@ -20,7 +20,10 @@ except ImportError:
     pass
 
 factor_names = ['Growth', 'HRL', 'R5MOHRL']
-env = DBProvider('10.63.6.219', 'sa', 'A12345678!')
+env = DBProvider(
+    'rm-bp1jv5xy8o62h2331o.sqlserver.rds.aliyuncs.com:3433',
+    'wegamekinglc',
+    'We051253524522')
 env.load_data('2008-01-02', '2015-11-01', factor_names)
 trainer = ERModelTrainer(250, 1, 10)
 trainer.train_models(factor_names, env.source_data)
@@ -40,4 +43,4 @@ returns = analyser.calculate(df1)
 analyser.plot()
 plt.show()
 
-env.archive('d:/data.pkl')
+env.archive('~/Downloads/data.pkl')

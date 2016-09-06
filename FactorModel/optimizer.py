@@ -134,16 +134,25 @@ def argument_checker(cov,
     else:
         c_lcm = 0
 
-    return prob_size, c_er, c_cov, c_tc, c_cw, c_bndl, c_bndu, c_lc, c_lct, c_lcm
+    return prob_size, \
+        c_er, \
+        c_cov, \
+        c_tc, \
+        c_cw,  \
+        c_bndl, \
+        c_bndu, \
+        c_lc, \
+        c_lct, \
+        c_lcm
 
 
 def portfolio_optimizer_with_no_cost_penlty(cov,
-                                           er,
-                                           cw,
-                                           bndl=None,
-                                           bndu=None,
-                                           lc=None,
-                                           lct=None):
+                                            er,
+                                            cw,
+                                            bndl=None,
+                                            bndu=None,
+                                            lc=None,
+                                            lct=None):
 
     tc = np.array([0.0])
     prob_size, c_er, c_cov, _, c_cw, c_bndl, c_bndu, c_lc, c_lct, c_lcm = \
@@ -153,39 +162,6 @@ def portfolio_optimizer_with_no_cost_penlty(cov,
     c_cost = (c_double * 1)(0.)
 
     dll_handle.portfolioOptimizerWithoutTradingCostPenalty(prob_size,
-                                  c_cov,
-                                  c_er,
-                                  c_cw,
-                                  c_bndl,
-                                  c_bndu,
-                                  c_lcm,
-                                  c_lc,
-                                  c_lct,
-                                  c_tw,
-                                  c_cost)
-
-    target_weight = [0.0] * len(c_tw)
-    for i in range(len(target_weight)):
-        target_weight[i] = c_tw[i]
-    cost = c_cost[0]
-    return target_weight, cost
-
-
-def portfolio_optimizer_with_no_cost_penlty2(cov,
-                                            er,
-                                            cw,
-                                            bndl=None,
-                                            bndu=None,
-                                            lc=None,
-                                            lct=None):
-    np.array([0.0])
-    prob_size, c_er, c_cov, _, c_cw, c_bndl, c_bndu, c_lc, c_lct, c_lcm = \
-        argument_checker(cov, er, tc, cw, bndl, bndu, lc, lct)
-
-    c_tw = (c_double * prob_size)(0., 0.)
-    c_cost = (c_double * 1)(0.)
-
-    dll_handle.portfolioOptimizerWithoutTradingCostPenalty2(prob_size,
                                                            c_cov,
                                                            c_er,
                                                            c_cw,
@@ -196,6 +172,39 @@ def portfolio_optimizer_with_no_cost_penlty2(cov,
                                                            c_lct,
                                                            c_tw,
                                                            c_cost)
+
+    target_weight = [0.0] * len(c_tw)
+    for i in range(len(target_weight)):
+        target_weight[i] = c_tw[i]
+    cost = c_cost[0]
+    return target_weight, cost
+
+
+def portfolio_optimizer_with_no_cost_penlty2(cov,
+                                             er,
+                                             cw,
+                                             bndl=None,
+                                             bndu=None,
+                                             lc=None,
+                                             lct=None):
+    np.array([0.0])
+    prob_size, c_er, c_cov, _, c_cw, c_bndl, c_bndu, c_lc, c_lct, c_lcm = \
+        argument_checker(cov, er, tc, cw, bndl, bndu, lc, lct)
+
+    c_tw = (c_double * prob_size)(0., 0.)
+    c_cost = (c_double * 1)(0.)
+
+    dll_handle.portfolioOptimizerWithoutTradingCostPenalty2(prob_size,
+                                                            c_cov,
+                                                            c_er,
+                                                            c_cw,
+                                                            c_bndl,
+                                                            c_bndu,
+                                                            c_lcm,
+                                                            c_lc,
+                                                            c_lct,
+                                                            c_tw,
+                                                            c_cost)
 
     target_weight = [0.0] * len(c_tw)
     for i in range(len(target_weight)):

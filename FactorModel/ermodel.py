@@ -58,7 +58,10 @@ class ERModelTrainer(object):
         apply_dates = list(train_data.applyDate.unique())
         calc_dates = list(train_data.calcDate.unique())
 
-        model_data = self._calc_model_dates(train_dates, apply_dates, calc_dates)
+        model_data = self._calc_model_dates(
+            train_dates,
+            apply_dates,
+            calc_dates)
 
         self._normalize(train_data, self.yield_name)
 
@@ -72,7 +75,9 @@ class ERModelTrainer(object):
         self.models = model_data
 
     def _normalize(self, train_data, field):
-        res = train_data[['applyDate', field]].groupby('applyDate').transform(lambda x: x / x.std())
+        res = train_data[['applyDate', field]] \
+            .groupby('applyDate') \
+            .transform(lambda x: x / x.std())
         train_data[field + '_norm'] = res[field]
 
     def _train(self,
@@ -118,7 +123,10 @@ class ERModelTrainer(object):
                 train_start_dates.append(apply_dates[factor_start])
                 train_end_dates.append(apply_dates[factor_end])
 
-        data = np.array([model_calc_dates, train_start_dates, train_end_dates]).T
+        data = np.array(
+            [model_calc_dates,
+                train_start_dates,
+                train_end_dates]).T
         return pd.DataFrame(data=data,
                             columns=['calcDate', 'trainStart', 'trainEnd'],
                             index=model_dates)

@@ -17,7 +17,8 @@ class TestOptimizer(unittest.TestCase):
     def analytic_solution(er, cov, aeq, beq):
         c_inv = np.linalg.inv(cov)
         v1 = np.linalg.inv(aeq @ c_inv @ aeq.T)
-        return c_inv @ (er.T - aeq.T @ v1 @ aeq @ c_inv @ er.T + aeq.T @ v1 @ beq)
+        return c_inv \
+            @ (er.T - aeq.T @ v1 @ aeq @ c_inv @ er.T + aeq.T @ v1 @ beq)
 
     def test_optimize_without_constraint(self):
         er = np.array([.05, .05])

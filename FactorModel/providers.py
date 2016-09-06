@@ -17,7 +17,7 @@ import sqlalchemy
 from FactorModel.utilities import format_date_index
 from FactorModel.utilities import format_date_to_index
 
-DB_DRIVER_TYPE = 'pyodbc'
+DB_DRIVER_TYPE = 'pymssql'
 
 ALPHA_FACTOR_TABLES = {'AlphaFactors_PROD',
                        'AlphaFactors_Difeiyue',
@@ -185,32 +185,56 @@ class DBProvider(DataFrameProvider):
         for table_name, factors in table2factors.items():
             factor_str = ','.join(factors)
             sql = 'select [Date], [Code], {factors} from {table_name} ' \
-                  'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
+                  'where [Date] >= {calc_start} and [Date] <= {calc_end} ' \
+                  'and [Code] in ({code_list_str}) ' \
                   'ORDER BY [Date], [Code]' \
-                .format(factors=factor_str, table_name=table_name, calc_start=calc_start, calc_end=calc_end,
+                .format(factors=factor_str,
+                        table_name=table_name,
+                        calc_start=calc_start,
+                        calc_end=calc_end,
                         code_list_str=code_list_str)
             factor_data = pd.read_sql(sql, self.pm_engine)
-            df = pd.merge(df, factor_data, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
+            df = pd.merge(df,
+                          factor_data,
+                          how='left',
+                          left_on=['calcDate', 'code'],
+                          right_on=['Date', 'Code'],
                           suffixes=('', '_y'))
             df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         # future returns and res
-        sql = 'select [Date], [Code], [D1Res], [D5Res], [D10Res], [D15Res], [D20Res] from [StockResidual] ' \
-              'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
+        sql = 'select [Date], [Code], [D1Res], [D5Res], ' \
+              '[D10Res], [D15Res], [D20Res] from [StockResidual] ' \
+              'where [Date] >= {calc_start} and [Date] <= {calc_end} ' \
+              'and [Code] in ({code_list_str}) ' \
               'ORDER BY [Date], [Code]' \
-            .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
+            .format(calc_start=calc_start,
+                    calc_end=calc_end,
+                    code_list_str=code_list_str)
         raw_future_res = pd.read_sql(sql, self.pm_engine)
-        df = pd.merge(df, raw_future_res, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
+        df = pd.merge(df,
+                      raw_future_res,
+                      how='left',
+                      left_on=['calcDate', 'code'],
+                      right_on=['Date', 'Code'],
                       suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
-        sql = 'select [Date], [Code], [D1LogReturn], [D5LogReturn], [D10LogReturn], [D15LogReturn], [D20LogReturn] ' \
+        sql = 'select [Date], [Code], [D1LogReturn], [D5LogReturn], ' \
+              '[D10LogReturn], [D15LogReturn], [D20LogReturn] ' \
               'from [StockReturns] ' \
-              'where [Date] >= {calc_start} and [Date] <= {calc_end} and [Code] in ({code_list_str}) ' \
+              'where [Date] >= {calc_start} and [Date] <= {calc_end} ' \
+              'and [Code] in ({code_list_str}) ' \
               'ORDER BY [Date], [Code]' \
-            .format(calc_start=calc_start, calc_end=calc_end, code_list_str=code_list_str)
+            .format(calc_start=calc_start,
+                    calc_end=calc_end,
+                    code_list_str=code_list_str)
         raw_future_returns = pd.read_sql(sql, self.pm_engine)
-        df = pd.merge(df, raw_future_returns, how='left', left_on=['calcDate', 'code'], right_on=['Date', 'Code'],
+        df = pd.merge(df,
+                      raw_future_returns,
+                      how='left',
+                      left_on=['calcDate', 'code'],
+                      right_on=['Date', 'Code'],
                       suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 

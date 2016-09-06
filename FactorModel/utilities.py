@@ -13,7 +13,9 @@ import pandas as pd
 import numpy as np
 
 
-def combine(df1: pd.DataFrame, df2: pd.DataFrame, inplace=False) -> pd.DataFrame:
+def combine(df1: pd.DataFrame,
+            df2: pd.DataFrame,
+            inplace=False) -> pd.DataFrame:
     if inplace:
         df1.set_index('code', append=True, drop=False, inplace=inplace)
         df2.set_index('code', append=True, inplace=inplace)

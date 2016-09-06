@@ -34,12 +34,19 @@ class PortCalc(object):
         lb[constraints.suspend] = weights[constraints.suspend]
         ub[constraints.suspend] = weights[constraints.suspend]
 
-        return Constraints(lb=lb, ub=ub, lc=constraints.lc, lct=constraints.lct, suspend=constraints.suspend)
+        return Constraints(
+            lb=lb,
+            ub=ub,
+            lc=constraints.lc,
+            lct=constraints.lct,
+            suspend=constraints.suspend)
 
 
 class MeanVariancePortCalc(PortCalc):
 
-    def __init__(self, method: str, cost_budget: Optional[float]=9999.) -> None:
+    def __init__(self,
+                 method: str,
+                 cost_budget: Optional[float]=9999.) -> None:
         self.method = method
         self.cost_budget = cost_budget
 
@@ -91,27 +98,37 @@ class EqualWeigthedPortCalc(PortCalc):
             rtn_table.loc[:, 'todayHolding'] = 0.
             rtn_table['todayHolding'] = pre_holding['todayHolding']
 
-            sell_candiates = np.array((rank <= out_threshold) & (rtn_table['todayHolding'] > 0.))
-            buy_candidates = np.array((rank >= in_threshold) & (rtn_table['todayHolding'] == 0.))
+            sell_candiates = np.array(
+                (rank <= out_threshold) & (rtn_table['todayHolding'] > 0.))
+            buy_candidates = np.array(
+                (rank >= in_threshold) & (rtn_table['todayHolding'] == 0.))
 
             rtn_table['rank'] = rank
-            filter_table = rtn_table[buy_candidates].sort_values('rank', ascending=False)
+            filter_table = rtn_table[buy_candidates] \
+                .sort_values('rank', ascending=False)
             filter_table['todayHolding'] = 0.
 
             rtn_table.loc[sell_candiates, 'todayHolding'] = 0.
 
             if not self.rebalance:
-                total_sell_position = np.sum(rtn_table.loc[sell_candiates, 'todayHolding']) + max(1.0 - np.sum(rtn_table['todayHolding']), 0.)
+                total_sell_position = \
+                    np.sum(rtn_table.loc[sell_candiates, 'todayHolding']) \
+                    + max(1.0 - np.sum(rtn_table['todayHolding']), 0.)
                 if total_sell_position == 0:
                     return rtn_table
 
-                to_buy_in = min(math.ceil(total_sell_position / 0.01), len(filter_table))
+                to_buy_in = min(
+                    math.ceil(total_sell_position / 0.01),
+                    len(filter_table))
                 to_buy_in_list = filter_table.index[:to_buy_in]
 
-                filter_table.loc[to_buy_in_list, 'todayHolding'] = total_sell_position / to_buy_in
-                rtn_table.loc[filter_table.index, 'todayHolding'] = filter_table['todayHolding'].values
+                filter_table.loc[to_buy_in_list, 'todayHolding'] = \
+                    total_sell_position / to_buy_in
+                rtn_table.loc[filter_table.index, 'todayHolding'] = \
+                    filter_table['todayHolding'].values
             else:
-                to_keep = np.array((rank > out_threshold) & (rtn_table['todayHolding'] > 0.))
+                to_keep = np.array(
+                    (rank > out_threshold) & (rtn_table['todayHolding'] > 0.))
                 to_buy_in = min(100 - np.sum(to_keep), len(filter_table))
                 to_buy_in_list = list(filter_table.index[:to_buy_in])
                 to_keep_list = list(rtn_table.index[to_keep])
@@ -148,7 +165,8 @@ class ERRankPortCalc(EqualWeigthedPortCalc):
         in_threshold = total_assets - self.in_threshold + 1
         out_threshold = total_assets - self.out_threshold + 1
 
-        return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank)
+        return self.trade_by_cumstom_rank(
+            er_table, pre_holding, in_threshold, out_threshold, rank)
 
 
 class ERThresholdPortCalc(EqualWeigthedPortCalc):
@@ -170,4 +188,5 @@ class ERThresholdPortCalc(EqualWeigthedPortCalc):
         out_threshold = self.out_threshold
         rank = er_table['er'].values
 
-        return self.trade_by_cumstom_rank(er_table, pre_holding, in_threshold, out_threshold, rank)
+        return self.trade_by_cumstom_rank(
+            er_table, pre_holding, in_threshold, out_threshold, rank)

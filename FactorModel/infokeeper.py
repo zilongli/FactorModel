@@ -20,6 +20,7 @@ class InfoKeeper(object):
 
     def info_view(self) -> pd.DataFrame:
         if self.current_index < len(self.data_sets):
-            self.stored_data = self.stored_data.append(self.data_sets[self.current_index:])
+            self.stored_data = self.stored_data.append(
+                self.data_sets[self.current_index:])
             self.current_index = len(self.data_sets)
         return self.stored_data.copy(deep=True)
