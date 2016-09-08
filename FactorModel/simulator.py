@@ -28,14 +28,15 @@ class Simulator(object):
                  model_factory: ERModelTrainer,
                  cov_model: CovModel,
                  scheduler: Scheduler,
-                 port_calc: PortCalc) -> None:
+                 port_calc: PortCalc,
+                 constraints_builder: Regulator) -> None:
         self.model_factory = model_factory
         self.provider = iter(provider)
         self.port_calc = port_calc
         self.info_keeper = InfoKeeper()
         self.scheduler = scheduler
         self.cov_model = cov_model
-        self.constraints_builder = Regulator(INDUSTRY_LIST)
+        self.constraints_builder = constraints_builder
 
     def simulate(self) -> pd.DataFrame:
         pre_holding = pd.DataFrame()
