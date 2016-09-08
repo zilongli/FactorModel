@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import rankdata
 from FactorModel.optimizer import CostBudgetProblem
+from FactorModel.optimizer import NoCostProblem
 from FactorModel.regulator import Constraints
 
 
@@ -70,11 +71,16 @@ class MeanVariancePortCalc(PortCalc):
             cost_budget = 9999.
         tc = np.ones(assets_number) * 0.002
 
-        prob = CostBudgetProblem(cov,
+        if self.method == 'no_cost':
+            prob = NoCostProblem(cov,
                                  er,
-                                 constraints,
-                                 tc,
-                                 cost_budget)
+                                 constraints)
+        else:
+            prob = CostBudgetProblem(cov,
+                                     er,
+                                     constraints,
+                                     tc,
+                                     cost_budget)
         weights, cost = prob.optimize(cw)
 
         rtntable['todayHolding'] = weights
