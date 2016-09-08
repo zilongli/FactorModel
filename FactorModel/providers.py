@@ -62,8 +62,8 @@ class DataFrameProvider(Provider):
         return copy.deepcopy(self.apply_date_list)
 
     def __iter__(self):
-        for calc_date, apply_date in
-        zip(self.calc_date_list, self.apply_date_list):
+        for calc_date, apply_date in \
+          zip(self.calc_date_list, self.apply_date_list):
             yield calc_date, apply_date, \
                 self.fetch_values_from_repo(apply_date)
 
@@ -190,8 +190,8 @@ class DBProvider(DataFrameProvider):
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         sql_template = \
-            "select [name] from [syscolumns] ' \
-            'where [id] = object_id('{alpha_factor_table}')"
+            "select [name] from [syscolumns] " \
+            "where [id] = object_id('{alpha_factor_table}')"
         raw_factor_dict = {
             table: pd.read_sql(
                 sql_template
