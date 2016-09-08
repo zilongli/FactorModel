@@ -8,6 +8,7 @@ from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.covmodel import CovModel
+from FactorModel.portcalc import MeanVariancePortCalc
 from FactorModel.simulator import Simulator
 from FactorModel.providers import DBProvider
 from FactorModel.analysers import PnLAnalyser
@@ -19,16 +20,16 @@ try:
 except ImportError:
     pass
 
-factor_names = ['Growth', 'HRL', 'R5MOHRL']
+factor_names = ['RMC', 'RVS', 'D5M5']
 env = DBProvider(
-    'rm-bp1jv5xy8o62h2331o.sqlserver.rds.aliyuncs.com:3433',
-    'wegamekinglc',
-    'We051253524522')
+    '10.63.6.219',
+    'sa',
+    'A12345678!')
 env.load_data('2008-01-02', '2015-11-01', factor_names)
-trainer = ERModelTrainer(250, 1, 10)
+trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)
-port_calc = ERRankPortCalc(100, 101)
+port_calc = MeanVariancePortCalc(method='no_cost')
 scheduler = Scheduler(env, 'weekly')
 simulator = Simulator(env, trainer, cov_model, scheduler, port_calc)
 analyser = PnLAnalyser()
@@ -43,4 +44,4 @@ returns = analyser.calculate(df1)
 analyser.plot()
 plt.show()
 
-env.archive('~/Downloads/data.pkl')
+env.archive('d:/data2.pkl')
