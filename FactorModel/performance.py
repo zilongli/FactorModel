@@ -37,7 +37,9 @@ class PerfAttributeBase(metaclass=abc.ABCMeta):
                    factor_values,
                    factor_names,
                    er_model,
-                   port_calc):
+                   port_calc,
+                   cov_matrix,
+                   trading_constraints):
         pass
 
     def save_data(self,
@@ -253,9 +255,12 @@ class PerfAttributeFocusLOO(PerfAttributeBase):
                 today_holding,
                 evolved_bm,
                 evolved_new_table):
-        null_assets = np.array(today_holding == 0)
+        null_assets = np.array(np.abs(today_holding) <= 1e-4)
         evolved_factor_p = evolved_new_table.values.copy()
         evolved_factor_p[null_assets, :] = 0.
+        for i in range(np.size(evolved_factor_p, 1)):
+            non_null_assets = np.array(np.abs(evolved_factor_p[:, i]) >= 1e-4)
+            evolved_factor_p[non_null_assets, i] = today_holding[non_null_assets]
         tmp = today_holding.copy()
         tmp.shape = -1, 1
         return tmp - evolved_factor_p
@@ -271,7 +276,7 @@ class PerfAttributeFocusLOO(PerfAttributeBase):
                    port_calc,
                    cov_matrix,
                    trading_constraints):
-        null_assets = np.array(today_holding == 0)
+        null_assets = np.array(np.abs(today_holding) <= 1e-4)
         p_holding = np.zeros((len(codes), len(factor_names)), dtype=float)
         for i, factor in enumerate(factor_names):
             tb_copy = factor_values.copy(deep=True)
@@ -285,6 +290,9 @@ class PerfAttributeFocusLOO(PerfAttributeBase):
             p_holding[:, i] = res['todayHolding'].values
         filtered_p_holding = p_holding.copy()
         filtered_p_holding[null_assets, :] = 0.
+        for i in range(len(factor_names)):
+            non_null_assets = np.array(np.abs(filtered_p_holding[:, i]) >= 1e-4)
+            filtered_p_holding[non_null_assets, i] = today_holding[non_null_assets]
         tmp = today_holding.copy()
         tmp.shape = -1, 1
         return p_holding, tmp - filtered_p_holding
@@ -300,9 +308,12 @@ class PerfAttributeFocusAOI(PerfAttributeBase):
                 today_holding,
                 evolved_bm,
                 evolved_new_table):
-        null_assets = np.array(today_holding == 0)
+        null_assets = np.array(np.abs(today_holding) <= 1e-4)
         evolved_factor_p = evolved_new_table.values.copy()
         evolved_factor_p[null_assets, :] = 0.
+        for i in range(np.size(evolved_factor_p, 1)):
+            non_null_assets = np.array(np.abs(evolved_factor_p[:, i]) >= 1e-4)
+            evolved_factor_p[non_null_assets, i] = today_holding[non_null_assets]
         return evolved_factor_p
 
     def _rebalance(self,
@@ -316,7 +327,7 @@ class PerfAttributeFocusAOI(PerfAttributeBase):
                    port_calc,
                    cov_matrix,
                    trading_constraints):
-        null_assets = np.array(today_holding == 0)
+        null_assets = np.array(np.abs(today_holding) <= 1e-4)
         p_holding = np.zeros((len(codes), len(factor_names)), dtype=float)
         for i, factor in enumerate(factor_names):
             tb_copy = factor_values.copy(deep=True)
@@ -331,4 +342,7 @@ class PerfAttributeFocusAOI(PerfAttributeBase):
             p_holding[:, i] = res['todayHolding'].values
         filtered_p_holding = p_holding.copy()
         filtered_p_holding[null_assets, :] = 0.
+        for i in range(len(factor_names)):
+            non_null_assets = np.array(np.abs(filtered_p_holding[:, i]) >= 1e-4)
+            filtered_p_holding[non_null_assets, i] = today_holding[non_null_assets]
         return p_holding, filtered_p_holding
