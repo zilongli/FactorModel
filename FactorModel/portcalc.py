@@ -65,10 +65,11 @@ class MeanVariancePortCalc(PortCalc):
         if np.sum(pre_holding['todayHolding']) > 0:
             cw = pre_holding['todayHolding']
             cost_budget = self.cost_budget
-            constraints = PortCalc.adjust_constraints(pre_holding, constraints)
         else:
             cw = np.zeros(assets_number)
             cost_budget = 9999.
+        constraints = PortCalc.adjust_constraints(pre_holding, constraints)
+
         tc = np.ones(assets_number) * 0.002
 
         if self.method == 'no_cost':
