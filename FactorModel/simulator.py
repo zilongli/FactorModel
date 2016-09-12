@@ -60,9 +60,11 @@ class Simulator(object):
                     Simulator.evolve_portfolio(codes, pre_holding, this_data)
                 factor_values = \
                     this_data[self.model_factory.factor_names].as_matrix()
-                er = model['model'].calculate_er(factor_values)
+                er_model = model['model']
+                er = er_model.calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                adjusted_cov_matrix = self.parameters_adjust(er, cov)
+                adjusted_cov_matrix = self.parameters_adjust(er, cov_matrix,
+                                                             self.model_factory.decay)
                 positions = self.rebalance(apply_date,
                                            er_table,
                                            evolved_preholding,
@@ -82,8 +84,9 @@ class Simulator(object):
 
         return self.info_keeper.info_view()
 
-    def parameters_adjust(self, er, cov):
-        return Settings.risk_aversion(er, cov)
+    def parameters_adjust(self, er, cov, decay):
+        cov_scaled = decay * cov
+        return Settings.risk_aversion(er, cov_scaled) * cov_scaled
 
     def aggregate_data(self,
                        er_table: pd.DataFrame,
