@@ -5,13 +5,15 @@ Created on 2016-8-25
 @author: cheng.li
 """
 
-from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.covmodel import CovModel
+from FactorModel.portcalc import MeanVariancePortCalc
 from FactorModel.simulator import Simulator
 from FactorModel.providers import FileProvider
 from FactorModel.analysers import PnLAnalyser
+from FactorModel.regulator import Regulator
+from FactorModel.facts import INDUSTRY_LIST
 from matplotlib import pyplot as plt
 
 try:
@@ -20,13 +22,19 @@ try:
 except ImportError:
     pass
 
-env = FileProvider("d:/data.pkl")
-trainer = ERModelTrainer(250, 1, 10)
-trainer.train_models(['Growth', 'HRL', 'R5MOHRL'], env.source_data)
+factor_names = ['RMC', 'RVS', 'D5M5']
+env = FileProvider("d:/data2.pkl")
+trainer = ERModelTrainer(250, 1, 5)
+trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)
-port_calc = ERRankPortCalc(100, 300)
-scheduler = Scheduler(env, 'weekly')
-simulator = Simulator(env, trainer, cov_model, scheduler, port_calc)
+port_calc = MeanVariancePortCalc(method='cost_budget', cost_budget=2e-4)
+scheduler = Scheduler(env, 'daily')
+constrinats_builder = Regulator(INDUSTRY_LIST)
+simulator = Simulator(env, trainer,
+                      cov_model,
+                      scheduler,
+                      port_calc,
+                      constrinats_builder)
 analyser = PnLAnalyser()
 
 df1 = env.source_data
