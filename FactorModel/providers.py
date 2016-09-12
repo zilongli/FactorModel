@@ -17,7 +17,6 @@ import sqlalchemy
 from FactorModel.utilities import format_date_index
 from FactorModel.utilities import format_date_to_index
 
-DB_DRIVER_TYPE = 'pymssql'
 
 ALPHA_FACTOR_TABLES = {'AlphaFactors_PROD',
                        'AlphaFactors_Difeiyue',
@@ -119,18 +118,13 @@ class FileProvider(DataFrameProvider):
         self.apply_date_list = self.repository.applyDate.unique()
 
 
-class DBProvider(DataFrameProvider):
+class MSSQLProvider(DataFrameProvider):
     def __init__(self,
                  server,
                  user,
                  pwd):
         super().__init__()
-        if DB_DRIVER_TYPE == 'pymssql':
-            conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
-        elif DB_DRIVER_TYPE == 'pyodbc':
-            conn_template = \
-                'mssql+pyodbc://{user}:{pwd}@{server}/{db_name}?' \
-                'driver=SQL+Server+Native+Client+11.0'
+        conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
         mf_conn = conn_template.format(
             user=user, pwd=pwd, server=server, db_name='MultiFactor')
         pm_conn = conn_template.format(
