@@ -19,6 +19,7 @@ from FactorModel.infokeeper import InfoKeeper
 from FactorModel.regulator import Regulator
 from FactorModel.facts import INDUSTRY_LIST
 from FactorModel.facts import BENCHMARK
+from FactorModel.settings import Settings
 
 
 class Simulator(object):
@@ -61,10 +62,11 @@ class Simulator(object):
                     this_data[self.model_factory.factor_names].as_matrix()
                 er = model['model'].calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
+                adjusted_cov_matrix = self.parameters_adjust(er, cov)
                 positions = self.rebalance(apply_date,
                                            er_table,
                                            evolved_preholding,
-                                           cov=cov_matrix,
+                                           cov=adjusted_cov_matrix,
                                            constraints=trading_constraints)
 
                 self.aggregate_data(
@@ -79,6 +81,9 @@ class Simulator(object):
                 pre_holding = positions[['todayHolding']]
 
         return self.info_keeper.info_view()
+
+    def parameters_adjust(self, er, cov):
+        return Settings.risk_aversion(er, cov)
 
     def aggregate_data(self,
                        er_table: pd.DataFrame,

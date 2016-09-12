@@ -24,14 +24,14 @@ except ImportError:
 
 factor_names = ['RMC', 'RVS', 'D5M5']
 env = MSSQLProvider(
-    'rm-bp1jv5xy8o62h2331o.sqlserver.rds.aliyuncs.com:3433',
-    'wegamekinglc',
-    'We051253524522')
+    '10.63.6.219',
+    'sa',
+    'A12345678!')
 env.load_data('2008-01-02', '2015-11-01', factor_names)
 trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)
-port_calc = MeanVariancePortCalc(method='no_cost')
+port_calc = MeanVariancePortCalc(method='cost_budget')
 scheduler = Scheduler(env, 'weekly')
 constrinats_builder = Regulator(INDUSTRY_LIST)
 simulator = Simulator(env,
