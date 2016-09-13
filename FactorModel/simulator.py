@@ -86,7 +86,7 @@ class Simulator(object):
 
     def parameters_adjust(self, er, cov, decay):
         cov_scaled = decay * cov
-        return Settings.risk_aversion(er, cov_scaled) * cov_scaled
+        return cov_scaled
 
     def aggregate_data(self,
                        er_table: pd.DataFrame,
