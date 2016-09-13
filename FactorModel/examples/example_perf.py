@@ -14,7 +14,6 @@ from FactorModel.performance import PerfAttributeAOI
 from FactorModel.performance import PerfAttributeFocusLOO
 from FactorModel.performance import PerfAttributeFocusAOI
 from FactorModel.portcalc import MeanVariancePortCalc
-from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.covmodel import CovModel
@@ -32,12 +31,11 @@ except ImportError:
 
 factor_names = ['RMC', 'RVS', 'D5M5']
 env = FileProvider("d:/data2.pkl")
-trainer = ERModelTrainer(250, 1, 10)
+trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)
 port_calc = MeanVariancePortCalc(method='no_cost')
-#port_calc = ERRankPortCalc(100, 101)
-scheduler = Scheduler(env, 'biweekly')
+scheduler = Scheduler(env, 'weekly')
 constrinats_builder = Regulator(INDUSTRY_LIST)
 simulator = Simulator(env,
                       trainer,
@@ -53,6 +51,10 @@ df2 = simulator.simulate()
 df1 = df1.loc[df2.index[0]:, :]
 df1[df2.columns] = df2
 
+analyser.calculate(df1)
+analyser.plot()
+plt.show()
+
 attributers = \
     [PerfAttributeLOO,
      PerfAttributeAOI,
@@ -61,7 +63,7 @@ attributers = \
 
 weight_cols = [f + '_weight' for f in factor_names]
 
-with ExcelWriter('result_weekly.xlsx') as f:
+with ExcelWriter('result_weekly_mv2.xlsx') as f:
     for cls in attributers:
         cls_name = cls.__name__
         attributer = cls()

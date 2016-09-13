@@ -63,8 +63,9 @@ class Simulator(object):
                 er_model = model['model']
                 er = er_model.calculate_er(factor_values)
                 er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                adjusted_cov_matrix = self.parameters_adjust(er, cov_matrix,
-                                                             self.model_factory.decay)
+                adjusted_cov_matrix = \
+                    self.parameters_adjust(er, cov_matrix,
+                                           self.model_factory.decay)
                 positions = self.rebalance(apply_date,
                                            er_table,
                                            evolved_preholding,
@@ -86,7 +87,7 @@ class Simulator(object):
 
     def parameters_adjust(self, er, cov, decay):
         cov_scaled = decay * cov
-        return cov_scaled
+        return Settings.risk_aversion(er, cov_scaled) * cov_scaled
 
     def aggregate_data(self,
                        er_table: pd.DataFrame,
