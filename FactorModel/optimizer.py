@@ -46,8 +46,7 @@ class NoCostProblem(OptProblem):
                                                        cw,
                                                        self.constraints.lb,
                                                        self.constraints.ub,
-                                                       self.constraints.lc,
-                                                       self.constraints.lct)
+                                                       self.constraints.lc)
 
 
 class CostBudgetProblem(OptProblem):
@@ -63,15 +62,14 @@ class CostBudgetProblem(OptProblem):
         self.cost_budget = cost_budget
 
     def optimize(self, cw: np.array) -> Tuple[np.array, float]:
-        return portfolio_optimizer_with_cost_buget(self.cov,
-                                                   self.er,
-                                                   self.tc,
-                                                   cw,
-                                                   self.cost_budget,
-                                                   self.constraints.lb,
-                                                   self.constraints.ub,
-                                                   self.constraints.lc,
-                                                   self.constraints.lct)
+        return portfolio_optimizer_with_cost_budget(self.cov,
+                                                    self.er,
+                                                    self.tc,
+                                                    cw,
+                                                    self.cost_budget,
+                                                    self.constraints.lb,
+                                                    self.constraints.ub,
+                                                    self.constraints.lc)
 
 
 def set_stop_condition(epsg,
@@ -109,7 +107,6 @@ def argument_checker(cov,
                      bndl,
                      bndu,
                      lc,
-                     lct,
                      added=0.0):
     prob_size = len(er)
 
@@ -121,7 +118,6 @@ def argument_checker(cov,
     c_bndl = transform_pyarray_to_c_arr(bndl)
     c_bndu = transform_pyarray_to_c_arr(bndu)
     c_lc = transform_pyarray_to_c_arr(lc)
-    c_lct = transform_pyarray_to_c_arr(lct)
 
     if not c_bndl:
         c_bndl = transform_pyarray_to_c_arr(-np.ones(prob_size) * 1e15)
@@ -129,8 +125,8 @@ def argument_checker(cov,
     if not c_bndu:
         c_bndu = transform_pyarray_to_c_arr(np.ones(prob_size) * 1e15)
 
-    if c_lct:
-        c_lcm = len(c_lct)
+    if c_lc:
+        c_lcm = int(len(c_lc) / (prob_size + 2))
     else:
         c_lcm = 0
 
@@ -142,7 +138,6 @@ def argument_checker(cov,
         c_bndl, \
         c_bndu, \
         c_lc, \
-        c_lct, \
         c_lcm
 
 
@@ -151,12 +146,11 @@ def portfolio_optimizer_with_no_cost_penlty(cov,
                                             cw,
                                             bndl=None,
                                             bndu=None,
-                                            lc=None,
-                                            lct=None):
+                                            lc=None):
 
     tc = np.array([0.0])
-    prob_size, c_er, c_cov, _, c_cw, c_bndl, c_bndu, c_lc, c_lct, c_lcm = \
-        argument_checker(cov, er, tc, cw, bndl, bndu, lc, lct)
+    prob_size, c_er, c_cov, _, c_cw, c_bndl, c_bndu, c_lc, c_lcm = \
+        argument_checker(cov, er, tc, cw, bndl, bndu, lc)
 
     c_tw = (c_double * prob_size)(0., 0.)
     c_cost = (c_double * 1)(0.)
@@ -169,7 +163,6 @@ def portfolio_optimizer_with_no_cost_penlty(cov,
                                                            c_bndu,
                                                            c_lcm,
                                                            c_lc,
-                                                           c_lct,
                                                            c_tw,
                                                            c_cost)
 
@@ -180,50 +173,16 @@ def portfolio_optimizer_with_no_cost_penlty(cov,
     return target_weight, cost
 
 
-def portfolio_optimizer_with_no_cost_penlty2(cov,
-                                             er,
-                                             cw,
-                                             bndl=None,
-                                             bndu=None,
-                                             lc=None,
-                                             lct=None):
-    np.array([0.0])
-    prob_size, c_er, c_cov, _, c_cw, c_bndl, c_bndu, c_lc, c_lct, c_lcm = \
-        argument_checker(cov, er, tc, cw, bndl, bndu, lc, lct)
-
-    c_tw = (c_double * prob_size)(0., 0.)
-    c_cost = (c_double * 1)(0.)
-
-    dll_handle.portfolioOptimizerWithoutTradingCostPenalty2(prob_size,
-                                                            c_cov,
-                                                            c_er,
-                                                            c_cw,
-                                                            c_bndl,
-                                                            c_bndu,
-                                                            c_lcm,
-                                                            c_lc,
-                                                            c_lct,
-                                                            c_tw,
-                                                            c_cost)
-
-    target_weight = [0.0] * len(c_tw)
-    for i in range(len(target_weight)):
-        target_weight[i] = c_tw[i]
-    cost = c_cost[0]
-    return target_weight, cost
-
-
-def portfolio_optimizer_with_cost_buget(cov,
+def portfolio_optimizer_with_cost_budget(cov,
                                         er,
                                         tc,
                                         cw,
                                         tcb,
                                         bndl,
                                         bndu,
-                                        lc=None,
-                                        lct=None):
-    prob_size, c_er, c_cov, c_tc, c_cw, c_bndl, c_bndu, c_lc, c_lct, c_lcm = \
-        argument_checker(cov, er, tc, cw, bndl, bndu, lc, lct, 1e-15)
+                                        lc=None):
+    prob_size, c_er, c_cov, c_tc, c_cw, c_bndl, c_bndu, c_lc, c_lcm = \
+        argument_checker(cov, er, tc, cw, bndl, bndu, lc, 1e-15)
 
     c_tcb = c_double(tcb)
     c_tw = (c_double * prob_size)(0., 0.)
@@ -239,7 +198,6 @@ def portfolio_optimizer_with_cost_buget(cov,
                                                        c_bndu,
                                                        c_lcm,
                                                        c_lc,
-                                                       c_lct,
                                                        c_tw,
                                                        c_cost)
 

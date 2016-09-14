@@ -5,8 +5,6 @@ Created on 2016-9-5
 @author: cheng.li
 """
 
-import numpy as np
-import pandas as pd
 from pandas.io.excel import ExcelWriter
 from matplotlib import pyplot as plt
 from FactorModel.performance import PerfAttributeLOO

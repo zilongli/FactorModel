@@ -13,7 +13,7 @@ from collections import namedtuple
 from FactorModel.facts import BENCHMARK
 
 
-Constraints = namedtuple('Constraints', ['lb', 'ub', 'lc', 'lct', 'suspend'])
+Constraints = namedtuple('Constraints', ['lb', 'ub', 'lc', 'suspend'])
 
 
 class Regulator(object):
@@ -37,7 +37,7 @@ class Regulator(object):
         equality_cons = np.concatenate(
             (equality_cons, industry_factor.T),
             axis=0)
-        equality_value = np.zeros((np.size(equality_cons, 0), 1))
+        equality_value = np.zeros((np.size(equality_cons, 0), 2))
         equality_value += equality_cons @ benchmark_weights
         equality_cons = np.concatenate((equality_cons, equality_value), axis=1)
         equality_cons = equality_cons[:-1, :]
@@ -46,10 +46,9 @@ class Regulator(object):
         ub = np.ones(assets_number) * 0.02 + benchmark_weights.flatten()
 
         lc = equality_cons
-        lct = np.zeros(np.size(equality_cons, 0))
 
         trading_constrains = Constraints(
-            lb=lb, ub=ub, lc=lc, lct=lct, suspend=suspended_flags.values)
+            lb=lb, ub=ub, lc=lc, suspend=suspended_flags.values)
         regulator_constrains = Constraints(
-            lb=lb, ub=ub, lc=lc, lct=lct, suspend=suspended_flags.values)
+            lb=lb, ub=ub, lc=lc, suspend=suspended_flags.values)
         return trading_constrains, regulator_constrains

@@ -39,7 +39,6 @@ class PortCalc(object):
             lb=lb,
             ub=ub,
             lc=constraints.lc,
-            lct=constraints.lct,
             suspend=constraints.suspend)
 
 

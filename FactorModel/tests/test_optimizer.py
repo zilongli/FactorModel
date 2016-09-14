@@ -27,7 +27,6 @@ class TestOptimizer(unittest.TestCase):
         constraints = Constraints(lb=None,
                                   ub=None,
                                   lc=None,
-                                  lct=None,
                                   suspend=None)
 
         prob = NoCostProblem(cov, er, constraints)
@@ -44,20 +43,41 @@ class TestOptimizer(unittest.TestCase):
         lb = np.array([0., 0., 0.])
         ub = np.array([1., 1., 1.])
 
-        lc = np.array([[1., 1., 1., 1.]])
-        lct = np.array([0])
+        lc = np.array([[1., 1., 1., 1., 1.]])
 
         constraints = Constraints(lb=lb,
                                   ub=ub,
                                   lc=lc,
-                                  lct=lct,
                                   suspend=None)
 
         prob = NoCostProblem(cov, er, constraints)
         target_weight, cost = prob.optimize(cw)
 
-        aeq = lc[:, :-1]
-        beq = lc[:, -1]
+        aeq = np.array([[1., 1., 1.]])
+        beq = np.array([1.])
 
         benchmark_weight = TestOptimizer.analytic_solution(er, cov, aeq, beq)
         self.assertTrue(np.all(np.isclose(target_weight, benchmark_weight)))
+
+    def test_optimizer_with_multiple_constraints(self):
+        er = np.array([.05, -.03, .02])
+        cov = np.array([[.25, .10, .08], [.10, .17, .05], [.08, .05, .15]])
+        cw = np.array([0.33, 0.33, 0.33])
+
+        lb = np.array([0., 0., 0.])
+        ub = np.array([1., 1., 1.])
+
+        lc = np.array([[1., 1., 1., 1., 1.],
+                       [1., 1., 0., .3, .6]])
+
+        constraints = Constraints(lb=lb,
+                                  ub=ub,
+                                  lc=lc,
+                                  suspend=None)
+
+        prob = NoCostProblem(cov, er, constraints)
+        target_weight, cost = prob.optimize(cw)
+
+        expected_result = [0.4165, 0.0003, 0.5832]
+
+        self.assertTrue(np.all(np.isclose(target_weight, expected_result, atol=1e-3)))

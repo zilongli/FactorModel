@@ -1,6 +1,6 @@
-int setStopCondition(double epsg, 
-        double epsf, 
-        double epsx, 
+int setStopCondition(double epsg,
+        double epsf,
+        double epsx,
         int maxits);
 
 int portfolioOptimizerWithoutTradingCostPenalty(int size,
@@ -11,7 +11,6 @@ int portfolioOptimizerWithoutTradingCostPenalty(int size,
         double* upperBound,
         int lcNumber,
         double* linearCond,
-        int* linearCondType,
         double* targetWeight,
         double* cost);
 
@@ -50,7 +49,6 @@ int portfolioOptimizerWithTradingCostBudget(int size,
 	double* upperBound,
 	int lcNumber,
 	double* linearCond,
-	int* linearCondType,
 	double* targetWeight,
 	double* cost);
 
@@ -64,6 +62,5 @@ int portfolioOptimizerWithTradingCostBudget2(int size,
 	double* upperBound,
 	int lcNumber,
 	double* linearCond,
-	int* linearCondType,
 	double* targetWeight,
 	double* cost);
