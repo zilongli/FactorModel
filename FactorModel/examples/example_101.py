@@ -8,7 +8,6 @@ Created on 2016-8-25
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.covmodel import CovModel
-from FactorModel.portcalc import MeanVariancePortCalc
 from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.simulator import Simulator
 from FactorModel.providers import FileProvider
@@ -28,7 +27,6 @@ env = FileProvider("d:/data2.pkl")
 trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)
-#port_calc = MeanVariancePortCalc('cost_budget', cost_budget=2e-4)
 port_calc = ERRankPortCalc(100, 200)
 scheduler = Scheduler(env, 'daily')
 constrinats_builder = Regulator(INDUSTRY_LIST)
@@ -41,7 +39,6 @@ analyser = PnLAnalyser()
 
 df1 = env.source_data
 df2 = simulator.simulate()
-print(df2.head())
 
 df1 = df1.loc[df2.index[0]:, :]
 df1[df2.columns] = df2

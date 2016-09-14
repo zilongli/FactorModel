@@ -80,4 +80,5 @@ class TestOptimizer(unittest.TestCase):
 
         expected_result = [0.4165, 0.0003, 0.5832]
 
-        self.assertTrue(np.all(np.isclose(target_weight, expected_result, atol=1e-3)))
+        self.assertTrue(
+            np.all(np.isclose(target_weight, expected_result, atol=1e-3)))

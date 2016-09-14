@@ -174,13 +174,13 @@ def portfolio_optimizer_with_no_cost_penlty(cov,
 
 
 def portfolio_optimizer_with_cost_budget(cov,
-                                        er,
-                                        tc,
-                                        cw,
-                                        tcb,
-                                        bndl,
-                                        bndu,
-                                        lc=None):
+                                         er,
+                                         tc,
+                                         cw,
+                                         tcb,
+                                         bndl,
+                                         bndu,
+                                         lc=None):
     prob_size, c_er, c_cov, c_tc, c_cw, c_bndl, c_bndu, c_lc, c_lcm = \
         argument_checker(cov, er, tc, cw, bndl, bndu, lc, 1e-15)
 

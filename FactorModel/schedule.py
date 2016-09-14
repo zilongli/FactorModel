@@ -16,7 +16,8 @@ class Scheduler(object):
         self.date_table = provider.date_table.copy(deep=True)
         self.freq = freq
         if self.freq == 'biweekly':
-            week_ends = self.date_table['eow'][self.date_table.eow == 1].astype(int)
+            week_ends = \
+                self.date_table['eow'][self.date_table.eow == 1].astype(int)
             week_ends[:] = 0
             week_ends[::2] = 1
             self.date_table['beow'] = week_ends
