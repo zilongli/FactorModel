@@ -114,7 +114,7 @@ class ERModelTrainer(object):
             train_dates = map(lambda x: np.datetime64(x), train_dates)
 
         for apply_date in train_dates:
-            i = apply_dates.index(apply_date)
+            i = bisect.bisect_left(apply_dates, apply_date)
             factor_end = i - self.decay
             factor_start = i - self.win_size - self.decay
             if factor_start >= 0 and factor_start % self.periods == 0:
@@ -129,4 +129,5 @@ class ERModelTrainer(object):
                 train_end_dates]).T
         return pd.DataFrame(data=data,
                             columns=['calcDate', 'trainStart', 'trainEnd'],
-                            index=model_dates)
+                            index=model_dates,
+                            dtype='datetime64[ns]')

@@ -26,9 +26,7 @@ class RARelative(RiskAversionBase):
     def __call__(self,
                  er: np.array,
                  cov: np.array) -> float:
-        t = np.linalg.solve(cov @ cov, er)
-        sqrt_root = math.sqrt(np.dot(er, t))
-        return self.level * sqrt_root
+        return self.level
 
 
 def create_risk_aversion(type: str,
