@@ -25,9 +25,8 @@ class PnLAnalyser(object):
             weights = data.loc[date, 'todayHolding']
             pre_weights = data.loc[date, 'evolvedPreHolding']
             bm_weights = returns['evolvedBMWeight']
-            this_day_return =
-            returns['nextReturn1day'].values.T @
-            (weights.values - np.sum(weights.values) /
+            this_day_return = \
+                returns['nextReturn1day'].values.T @ (weights.values - np.sum(weights.values) /
                 np.sum(bm_weights.values) * bm_weights.values)
             this_day_tc = np.sum(np.abs(weights.values - pre_weights.values)) \
                 * 0.002
