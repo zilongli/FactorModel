@@ -5,7 +5,6 @@ Created on 2016-9-12
 """
 
 import abc
-import math
 import numpy as np
 
 

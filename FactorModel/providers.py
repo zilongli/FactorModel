@@ -50,6 +50,26 @@ class DataFrameProvider(Provider):
         with open(file_path, 'wb') as f:
             pickle.dump(data_dict, f)
 
+    def append(self, new_data, replace=False):
+
+        new_columns = \
+            set(new_data.columns).difference(set(['applyDate', 'calcDate', 'code']))
+
+        for name in new_columns:
+            if name in self.repository and not replace:
+                raise ValueError(
+                    '{0} is already in repository. '
+                    'Please rename it in the new data or set replace flag as True')
+            elif name in self.repository and replace:
+                del self.repository[name]
+
+        res = pd.merge(self.repository,
+                       new_data,
+                       on=['applyDate', 'code'],
+                       how='left')
+        res.fillna(0, inplace=True)
+        self.repository = res
+
     @property
     def source_data(self) -> pd.DataFrame:
         return self.repository.copy(deep=True)
