@@ -67,7 +67,9 @@ class DataFrameProvider(Provider):
                        new_data,
                        on=['applyDate', 'code'],
                        how='left')
+
         res.fillna(0, inplace=True)
+        res.set_index('applyDate', drop=False, inplace=True)
         self.repository = res
 
     @property
@@ -203,48 +205,49 @@ class MSSQLProvider(DataFrameProvider):
             right_on=['Date', 'Code'], suffixes=('', '_y'))
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
-        sql_template = \
-            "select [name] from [syscolumns] " \
-            "where [id] = object_id('{alpha_factor_table}')"
-        raw_factor_dict = {
-            table: pd.read_sql(
-                sql_template
-                .format(alpha_factor_table=table),
-                self.pm_engine)['name'].values[2:]
-            for table in ALPHA_FACTOR_TABLES}
-        factor_dict = dict()
-        for key, values in raw_factor_dict.items():
-            for v in values:
-                factor_dict[v] = key
+        if alpha_factors:
+            sql_template = \
+                "select [name] from [syscolumns] " \
+                "where [id] = object_id('{alpha_factor_table}')"
+            raw_factor_dict = {
+                table: pd.read_sql(
+                    sql_template
+                    .format(alpha_factor_table=table),
+                    self.pm_engine)['name'].values[2:]
+                for table in ALPHA_FACTOR_TABLES}
+            factor_dict = dict()
+            for key, values in raw_factor_dict.items():
+                for v in values:
+                    factor_dict[v] = key
 
-        input_factor_map = \
-            {factor: factor_dict[factor] for factor in alpha_factors}
-        table2factors = dict()
-        for factor, table_name in input_factor_map.items():
-            if table_name in table2factors:
-                table2factors[table_name].append(factor)
-            else:
-                table2factors[table_name] = [factor]
+            input_factor_map = \
+                {factor: factor_dict[factor] for factor in alpha_factors}
+            table2factors = dict()
+            for factor, table_name in input_factor_map.items():
+                if table_name in table2factors:
+                    table2factors[table_name].append(factor)
+                else:
+                    table2factors[table_name] = [factor]
 
-        for table_name, factors in table2factors.items():
-            factor_str = ','.join(factors)
-            sql = 'select [Date], [Code], {factors} from {table_name} ' \
-                  'where [Date] >= {calc_start} and [Date] <= {calc_end} ' \
-                  'and [Code] in ({code_list_str}) ' \
-                  'ORDER BY [Date], [Code]' \
-                .format(factors=factor_str,
-                        table_name=table_name,
-                        calc_start=calc_start,
-                        calc_end=calc_end,
-                        code_list_str=code_list_str)
-            factor_data = pd.read_sql(sql, self.pm_engine)
-            df = pd.merge(df,
-                          factor_data,
-                          how='left',
-                          left_on=['calcDate', 'code'],
-                          right_on=['Date', 'Code'],
-                          suffixes=('', '_y'))
-            df.drop(['Date', 'Code'], axis=1, inplace=True)
+            for table_name, factors in table2factors.items():
+                factor_str = ','.join(factors)
+                sql = 'select [Date], [Code], {factors} from {table_name} ' \
+                      'where [Date] >= {calc_start} and [Date] <= {calc_end} ' \
+                      'and [Code] in ({code_list_str}) ' \
+                      'ORDER BY [Date], [Code]' \
+                    .format(factors=factor_str,
+                            table_name=table_name,
+                            calc_start=calc_start,
+                            calc_end=calc_end,
+                            code_list_str=code_list_str)
+                factor_data = pd.read_sql(sql, self.pm_engine)
+                df = pd.merge(df,
+                              factor_data,
+                              how='left',
+                              left_on=['calcDate', 'code'],
+                              right_on=['Date', 'Code'],
+                              suffixes=('', '_y'))
+                df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         # future returns and res
         sql = 'select [Date], [Code], [D1Res], [D5Res], ' \
