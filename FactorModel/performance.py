@@ -30,24 +30,18 @@ class PerfAttributeBase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _rebalance(self,
-                   codes,
                    today_holding,
                    pre_holding,
                    evolved_bm,
-                   factor_values,
+                   repo_data,
                    factor_names,
-                   er_model,
-                   port_calc,
-                   cov_matrix,
-                   trading_constraints):
+                   port_calc):
         pass
 
     def save_data(self,
-                  codes,
                   calc_date,
                   apply_date,
                   today_holding,
-                  p_table,
                   p_matrix,
                   evolved_bm,
                   total_pnl,
@@ -76,33 +70,28 @@ class PerfAttributeBase(metaclass=abc.ABCMeta):
             + [bm_weight, total_weight] + list(factor_weight)
 
     def analysis(self,
-                 er_trainer: ERModelTrainer,
-                 schedule: Scheduler,
                  port_calc: PortCalc,
-                 cov_model,
-                 constraints_builder: Regulator,
                  data: pd.DataFrame) -> None:
         all_apply_dates = sorted(data.index.unique())
         all_calculate_dates = sorted(data.calcDate.unique())
+        er_trainer = port_calc.model_factory
+        scheduler = port_calc.scheduler
         factor_names = er_trainer.factor_names
         col_names = ['calcDate', 'total'] + list(factor_names)
         self.report = pd.DataFrame(columns=col_names)
         for calc_date, apply_date in zip(all_calculate_dates, all_apply_dates):
             print(calc_date, apply_date)
 
-            if self.p_table.empty and not schedule.is_rebalance(apply_date):
+            if self.p_table.empty and not scheduler.is_rebalance(apply_date):
                 continue
 
-            this_data = data.loc[apply_date, :]
-            codes = this_data.code
-            trading_constraints, _ = \
-                constraints_builder.build_constraints(this_data)
-            cov_matrix = cov_model.fetch_cov(calc_date, this_data)
-            returns = this_data['nextReturn1day'].values
-            today_holding = this_data['todayHolding'].values
-            evolved_bm = this_data['evolvedBMWeight'].values
+            repo_data = data.loc[apply_date, :]
+            codes = repo_data.code.astype(int)
+            returns = repo_data['nextReturn1day'].values
+            today_holding = repo_data['todayHolding'].values
+            evolved_bm = repo_data['evolvedBMWeight'].values
 
-            if not schedule.is_rebalance(apply_date):
+            if not scheduler.is_rebalance(apply_date):
                 evolved_new_table = pd.DataFrame(
                     np.zeros((len(codes), len(factor_names)), dtype=float),
                     index=codes,
@@ -125,35 +114,27 @@ class PerfAttributeBase(metaclass=abc.ABCMeta):
                     / np.sum(evolved_bm) * np.dot(evolved_bm, returns)
                 self.p_table = evolved_new_table
             else:
-                evolved_preholding = this_data['evolvedPreHolding'].values
+                evolved_preholding = repo_data['evolvedPreHolding'].values
                 pre_holding = pd.DataFrame(
                     evolved_preholding, index=codes, columns=['todayHolding'])
-                factor_values = this_data[factor_names]
-                er_model = er_trainer.fetch_model(apply_date)['model']
 
                 total_pnl = np.dot(today_holding, returns) \
                     - np.sum(today_holding) \
                     / np.sum(evolved_bm) * np.dot(evolved_bm, returns)
-                p_holding, p_matrix = self._rebalance(codes,
-                                                      today_holding,
+                p_holding, p_matrix = self._rebalance(today_holding,
                                                       pre_holding,
                                                       evolved_bm,
-                                                      factor_values,
+                                                      repo_data,
                                                       factor_names,
-                                                      er_model,
-                                                      port_calc,
-                                                      cov_matrix,
-                                                      trading_constraints)
+                                                      port_calc)
                 factor_pnl = returns @ p_matrix \
                     - np.sum(p_matrix, axis=0) \
                     / np.sum(evolved_bm) * np.dot(evolved_bm, returns)
                 self.p_table = pd.DataFrame(
                     p_holding, index=codes, columns=factor_names)
-            self.save_data(codes,
-                           calc_date,
+            self.save_data(calc_date,
                            apply_date,
                            today_holding,
-                           self.p_table,
                            p_matrix,
                            evolved_bm,
                            total_pnl,
@@ -180,27 +161,24 @@ class PerfAttributeLOO(PerfAttributeBase):
         return tmp - evolved_factor_p
 
     def _rebalance(self,
-                   codes,
                    today_holding,
                    pre_holding,
                    evolved_bm,
-                   factor_values,
+                   repo_data,
                    factor_names,
-                   er_model,
-                   port_calc,
-                   cov_matrix,
-                   trading_constraints):
+                   port_calc):
+        codes = repo_data.code.astype(int)
+        calc_date = repo_data.calcDate[0]
+        apply_date = repo_data.applyDate[0]
         p_holding = np.zeros((len(codes), len(factor_names)), dtype=float)
         for i, factor in enumerate(factor_names):
-            tb_copy = factor_values.copy(deep=True)
+            tb_copy = repo_data.copy(deep=True)
             tb_copy[factor] = 0.
-            er = er_model.calculate_er(tb_copy)
-            er_table = pd.DataFrame(er, index=codes, columns=['er'])
-            res = port_calc.trade(er_table,
-                                  pre_holding,
-                                  cov=cov_matrix,
-                                  constraints=trading_constraints)
-            p_holding[:, i] = res['todayHolding'].values
+            er_table, positions = port_calc.trade(calc_date,
+                                                  apply_date,
+                                                  pre_holding,
+                                                  tb_copy)
+            p_holding[:, i] = positions['todayHolding'].values
         tmp = today_holding.copy()
         tmp.shape = -1, 1
         return p_holding, tmp - p_holding
@@ -220,28 +198,25 @@ class PerfAttributeAOI(PerfAttributeBase):
         return evolved_factor_p
 
     def _rebalance(self,
-                   codes,
                    today_holding,
                    pre_holding,
                    evolved_bm,
-                   factor_values,
+                   repo_data,
                    factor_names,
-                   er_model,
-                   port_calc,
-                   cov_matrix,
-                   trading_constraints):
+                   port_calc):
+        codes = repo_data.code.astype(int)
+        calc_date = repo_data.calcDate[0]
+        apply_date = repo_data.applyDate[0]
         p_holding = np.zeros((len(codes), len(factor_names)), dtype=float)
         for i, factor in enumerate(factor_names):
-            tb_copy = factor_values.copy(deep=True)
-            tb_copy.loc[:, :] = 0.
-            tb_copy[factor] = factor_values[factor]
-            er = er_model.calculate_er(tb_copy)
-            er_table = pd.DataFrame(er, index=codes, columns=['er'])
-            res = port_calc.trade(er_table,
-                                  pre_holding,
-                                  cov=cov_matrix,
-                                  constraints=trading_constraints)
-            p_holding[:, i] = res['todayHolding'].values
+            tb_copy = repo_data.copy(deep=True)
+            tb_copy.loc[:, factor_names] = 0.
+            tb_copy[factor] = repo_data[factor]
+            er_table, positions = port_calc.trade(calc_date,
+                                                  apply_date,
+                                                  pre_holding,
+                                                  tb_copy)
+            p_holding[:, i] = positions['todayHolding'].values
         return p_holding, p_holding
 
 
@@ -263,28 +238,25 @@ class PerfAttributeFocusLOO(PerfAttributeBase):
         return tmp - evolved_factor_p
 
     def _rebalance(self,
-                   codes,
                    today_holding,
                    pre_holding,
                    evolved_bm,
-                   factor_values,
+                   repo_data,
                    factor_names,
-                   er_model,
-                   port_calc,
-                   cov_matrix,
-                   trading_constraints):
+                   port_calc):
+        codes = repo_data.code.astype(int)
+        calc_date = repo_data.calcDate[0]
+        apply_date = repo_data.applyDate[0]
         null_assets = np.array(np.abs(today_holding) <= 1e-4)
         p_holding = np.zeros((len(codes), len(factor_names)), dtype=float)
         for i, factor in enumerate(factor_names):
-            tb_copy = factor_values.copy(deep=True)
+            tb_copy = repo_data.copy(deep=True)
             tb_copy[factor] = 0.
-            er = er_model.calculate_er(tb_copy)
-            er_table = pd.DataFrame(er, index=codes, columns=['er'])
-            res = port_calc.trade(er_table,
-                                  pre_holding,
-                                  cov=cov_matrix,
-                                  constraints=trading_constraints)
-            p_holding[:, i] = res['todayHolding'].values
+            er_table, positions = port_calc.trade(calc_date,
+                                                  apply_date,
+                                                  pre_holding,
+                                                  tb_copy)
+            p_holding[:, i] = positions['todayHolding'].values
         filtered_p_holding = p_holding.copy()
         filtered_p_holding[null_assets, :] = 0.
         tmp = today_holding.copy()
@@ -308,29 +280,26 @@ class PerfAttributeFocusAOI(PerfAttributeBase):
         return evolved_factor_p
 
     def _rebalance(self,
-                   codes,
                    today_holding,
                    pre_holding,
                    evolved_bm,
-                   factor_values,
+                   repo_data,
                    factor_names,
-                   er_model,
-                   port_calc,
-                   cov_matrix,
-                   trading_constraints):
+                   port_calc):
+        codes = repo_data.code.astype(int)
+        calc_date = repo_data.calcDate[0]
+        apply_date = repo_data.applyDate[0]
         null_assets = np.array(np.abs(today_holding) <= 1e-4)
         p_holding = np.zeros((len(codes), len(factor_names)), dtype=float)
         for i, factor in enumerate(factor_names):
-            tb_copy = factor_values.copy(deep=True)
-            tb_copy.loc[:, :] = 0.
-            tb_copy[factor] = factor_values[factor]
-            er = er_model.calculate_er(tb_copy)
-            er_table = pd.DataFrame(er, index=codes, columns=['er'])
-            res = port_calc.trade(er_table,
-                                  pre_holding,
-                                  cov=cov_matrix,
-                                  constraints=trading_constraints)
-            p_holding[:, i] = res['todayHolding'].values
+            tb_copy = repo_data.copy(deep=True)
+            tb_copy.loc[:, factor_names] = 0.
+            tb_copy[factor] = repo_data[factor]
+            er_table, positions = port_calc.trade(calc_date,
+                                                  apply_date,
+                                                  pre_holding,
+                                                  tb_copy)
+            p_holding[:, i] = positions['todayHolding'].values
         filtered_p_holding = p_holding.copy()
         filtered_p_holding[null_assets, :] = 0.
         return p_holding, filtered_p_holding

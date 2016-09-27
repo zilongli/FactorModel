@@ -70,10 +70,6 @@ with ExcelWriter('result_weekly_mv2.xlsx') as f:
     for cls in attributers:
         cls_name = cls.__name__
         attributer = cls()
-        attributer.analysis(trainer,
-                            scheduler,
-                            port_calc,
-                            cov_model,
-                            constraints_builder,
+        attributer.analysis(port_calc,
                             df1)
         attributer.report.to_excel(f, cls_name)
