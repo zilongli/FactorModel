@@ -6,6 +6,7 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
+import abc
 import math
 from typing import Optional
 import pandas as pd
@@ -14,14 +15,20 @@ from scipy.stats import rankdata
 from FactorModel.optimizer import CostBudgetProblem
 from FactorModel.optimizer import NoCostProblem
 from FactorModel.regulator import Constraints
+from FactorModel.covmodel import CovModel
+from FactorModel.ermodel import ERModelTrainer
+from FactorModel.regulator import Regulator
+from FactorModel.schedule import Scheduler
 
 
-class PortCalc(object):
+class PortCalc(metaclass=abc.ABCMeta):
 
+    @abc.abstractmethod
     def trade(self,
-              er_table: pd.DataFrame,
+              calc_date: pd.Timestamp,
+              apply_data: pd.Timestamp,
               pre_holding: pd.DataFrame,
-              **kwargs) -> pd.DataFrame:
+              repo_data: pd.DataFrame) -> pd.DataFrame:
         raise NotImplementedError()
 
     @staticmethod
@@ -46,48 +53,82 @@ class MeanVariancePortCalc(PortCalc):
 
     def __init__(self,
                  method: str,
+                 model_factory: ERModelTrainer,
+                 cov_model: CovModel,
+                 constraints_builder: Regulator,
+                 scheduler: Scheduler,
                  cost_budget: Optional[float]=9999.) -> None:
         self.method = method
+        self.model_factory = model_factory
+        self.cov_model = cov_model
+        self.constraints_builder = constraints_builder
+        self.scheduler = scheduler
         self.cost_budget = cost_budget
 
     def trade(self,
-              er_table: pd.DataFrame,
+              calc_date: pd.Timestamp,
+              apply_date: pd.Timestamp,
               pre_holding: pd.DataFrame,
-              **kwargs) -> pd.DataFrame:
-        rtntable = er_table.copy(deep=True)
-        assets_number = len(er_table)
-        er = er_table['er'].values
+              repo_data: pd.DataFrame) -> pd.DataFrame:
 
-        constraints = kwargs['constraints']
-        cov = kwargs['cov']
+        model = self.model_factory.fetch_model(apply_date)
+        cov_matrix = self.cov_model.fetch_cov(calc_date, repo_data)
 
-        if np.sum(pre_holding['todayHolding']) > 0:
-            cw = pre_holding['todayHolding']
-            cost_budget = self.cost_budget
+        if not model.empty and len(cov_matrix) > 0:
+            factor_values = \
+                repo_data[self.model_factory.factor_names].as_matrix()
+            er_model = model['model']
+            er = er_model.calculate_er(factor_values)
+            codes = repo_data.code.astype(int)
+            er_table = pd.DataFrame(er, index=codes, columns=['er'])
+            if self.scheduler.is_rebalance(apply_date):
+                adjusted_cov_matrix = cov_matrix * self.model_factory.decay
+
+                rtntable = er_table.copy(deep=True)
+                assets_number = len(er_table)
+
+                constraints, _ = \
+                    self.constraints_builder.build_constraints(repo_data)
+
+                if np.sum(pre_holding['todayHolding']) > 0:
+                    cw = pre_holding['todayHolding']
+                    cost_budget = self.cost_budget
+                else:
+                    cw = np.zeros(assets_number)
+                    cost_budget = 9999.
+                constraints = \
+                    PortCalc.adjust_constraints(pre_holding, constraints)
+
+                tc = np.ones(assets_number) * 0.002
+
+                if self.method == 'no_cost':
+                    prob = NoCostProblem(adjusted_cov_matrix,
+                                         er,
+                                         constraints)
+                else:
+                    prob = CostBudgetProblem(adjusted_cov_matrix,
+                                             er,
+                                             constraints,
+                                             tc,
+                                             cost_budget)
+                weights, cost = prob.optimize(cw)
+
+                rtntable['todayHolding'] = weights
+                return er_table, rtntable
+            else:
+                return er_table, pre_holding.copy(deep=True)
         else:
-            cw = np.zeros(assets_number)
-            cost_budget = 9999.
-        constraints = PortCalc.adjust_constraints(pre_holding, constraints)
-
-        tc = np.ones(assets_number) * 0.002
-
-        if self.method == 'no_cost':
-            prob = NoCostProblem(cov,
-                                 er,
-                                 constraints)
-        else:
-            prob = CostBudgetProblem(cov,
-                                     er,
-                                     constraints,
-                                     tc,
-                                     cost_budget)
-        weights, cost = prob.optimize(cw)
-
-        rtntable['todayHolding'] = weights
-        return rtntable
+            return pd.DataFrame(), pre_holding.copy(deep=True)
 
 
 class EqualWeigthedPortCalc(PortCalc):
+
+    def __init__(self,
+                 model_factory: ERModelTrainer,
+                 scheduler: Scheduler,
+                 ) -> None:
+        self.model_factory = model_factory
+        self.scheduler = scheduler
 
     def trade_by_cumstom_rank(self,
                               er_table: pd.DataFrame,
@@ -155,24 +196,42 @@ class ERRankPortCalc(EqualWeigthedPortCalc):
     def __init__(self,
                  in_threshold: int,
                  out_threshold: int,
+                 model_factory: ERModelTrainer,
+                 scheduler: Scheduler,
                  rebalance: Optional[bool]=True) -> None:
+        super().__init__(model_factory, scheduler)
         self.in_threshold = in_threshold
         self.out_threshold = out_threshold
         self.rebalance = rebalance
 
     def trade(self,
-              er_table: pd.DataFrame,
+              calc_date: pd.Timestamp,
+              apply_date: pd.Timestamp,
               pre_holding: pd.DataFrame,
-              **kwargs) -> pd.DataFrame:
+              repo_data: pd.DataFrame) -> pd.DataFrame:
+        model = self.model_factory.fetch_model(apply_date)
 
-        er_values = er_table['er'].values
-        total_assets = len(er_table)
-        rank = rankdata(er_values)
-        in_threshold = total_assets - self.in_threshold + 1
-        out_threshold = total_assets - self.out_threshold + 1
+        if not model.empty:
+            codes = repo_data.code.astype(int)
+            er_model = model['model']
+            factor_values = \
+                repo_data[self.model_factory.factor_names].as_matrix()
+            er = er_model.calculate_er(factor_values)
+            er_table = pd.DataFrame(er, index=codes, columns=['er'])
+            if self.scheduler.is_rebalance(apply_date):
+                er_values = er_table['er'].values
+                total_assets = len(er_table)
+                rank = rankdata(er_values)
+                in_threshold = total_assets - self.in_threshold + 1
+                out_threshold = total_assets - self.out_threshold + 1
 
-        return self.trade_by_cumstom_rank(
-            er_table, pre_holding, in_threshold, out_threshold, rank)
+                positions = self.trade_by_cumstom_rank(
+                    er_table, pre_holding, in_threshold, out_threshold, rank)
+                return er_table, positions
+            else:
+                return er_table, pre_holding.copy(deep=True)
+        else:
+            return pd.DataFrame(), pre_holding.copy(deep=True)
 
 
 class ERThresholdPortCalc(EqualWeigthedPortCalc):
@@ -180,19 +239,36 @@ class ERThresholdPortCalc(EqualWeigthedPortCalc):
     def __init__(self,
                  in_threshold: float,
                  out_threshold: float,
+                 model_factory: ERModelTrainer,
+                 scheduler: Scheduler,
                  rebalance: Optional[bool]=True) -> None:
+        super().__init__(model_factory, scheduler)
         self.in_threshold = in_threshold
         self.out_threshold = out_threshold
         self.rebalance = rebalance
 
     def trade(self,
-              er_table: pd.DataFrame,
+              calc_date: pd.Timestamp,
+              apply_date: pd.Timestamp,
               pre_holding: pd.DataFrame,
-              **kwargs) -> pd.DataFrame:
+              repo_data: pd.DataFrame) -> pd.DataFrame:
+        model = self.model_factory.fetch_model(apply_date)
+        if not model.empty:
+            codes = repo_data.code.astype(int)
+            er_model = model['model']
+            factor_values = \
+                repo_data[self.model_factory.factor_names].as_matrix()
+            er = er_model.calculate_er(factor_values)
+            er_table = pd.DataFrame(er, index=codes, columns=['er'])
+            if self.scheduler.is_rebalance(apply_date):
+                in_threshold = self.in_threshold
+                out_threshold = self.out_threshold
+                rank = er_table['er'].values
 
-        in_threshold = self.in_threshold
-        out_threshold = self.out_threshold
-        rank = er_table['er'].values
-
-        return self.trade_by_cumstom_rank(
-            er_table, pre_holding, in_threshold, out_threshold, rank)
+                positions = self.trade_by_cumstom_rank(
+                    er_table, pre_holding, in_threshold, out_threshold, rank)
+                return er_table, positions
+            else:
+                return er_table, pre_holding.copy(deep=True)
+        else:
+            return pd.DataFrame(), pre_holding.copy(deep=True)

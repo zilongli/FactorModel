@@ -7,13 +7,10 @@ Created on 2016-8-25
 
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
-from FactorModel.covmodel import CovModel
 from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.simulator import Simulator
 from FactorModel.providers import FileProvider
 from FactorModel.analysers import PnLAnalyser
-from FactorModel.regulator import Regulator
-from FactorModel.facts import INDUSTRY_LIST
 from matplotlib import pyplot as plt
 
 try:
@@ -26,15 +23,13 @@ factor_names = ['RMC', 'RVS', 'D5M5']
 env = FileProvider("d:/data2.pkl")
 trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
-cov_model = CovModel(env)
-port_calc = ERRankPortCalc(100, 200)
 scheduler = Scheduler(env, 'daily')
-constrinats_builder = Regulator(INDUSTRY_LIST)
-simulator = Simulator(env, trainer,
-                      cov_model,
-                      scheduler,
-                      port_calc,
-                      constrinats_builder)
+port_calc = ERRankPortCalc(100,
+                           200,
+                           model_factory=trainer,
+                           scheduler=scheduler)
+simulator = Simulator(env,
+                      port_calc)
 analyser = PnLAnalyser()
 
 df1 = env.source_data

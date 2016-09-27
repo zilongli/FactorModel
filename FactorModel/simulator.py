@@ -5,19 +5,12 @@ Created on 2016-8-16
 @author: cheng.li
 """
 
-from typing import List
 from typing import Tuple
 import numpy as np
 import pandas as pd
 from FactorModel.providers import Provider
-from FactorModel.ermodel import ERModelTrainer
-from FactorModel.covmodel import CovModel
 from FactorModel.portcalc import PortCalc
-from FactorModel.schedule import Scheduler
-from FactorModel.regulator import Constraints
 from FactorModel.infokeeper import InfoKeeper
-from FactorModel.regulator import Regulator
-from FactorModel.facts import INDUSTRY_LIST
 from FactorModel.facts import BENCHMARK
 from FactorModel.settings import Settings
 
@@ -26,18 +19,10 @@ class Simulator(object):
 
     def __init__(self,
                  provider: Provider,
-                 model_factory: ERModelTrainer,
-                 cov_model: CovModel,
-                 scheduler: Scheduler,
-                 port_calc: PortCalc,
-                 constraints_builder: Regulator) -> None:
-        self.model_factory = model_factory
+                 port_calc: PortCalc) -> None:
         self.provider = iter(provider)
         self.port_calc = port_calc
         self.info_keeper = InfoKeeper()
-        self.scheduler = scheduler
-        self.cov_model = cov_model
-        self.constraints_builder = constraints_builder
 
     def simulate(self) -> pd.DataFrame:
         pre_holding = pd.DataFrame()
@@ -50,51 +35,32 @@ class Simulator(object):
 
             print(apply_date)
 
-            trading_constraints, _ = \
-                self.constraints_builder.build_constraints(this_data)
-            codes = this_data.code.astype(int)
-            model = self.model_factory.fetch_model(apply_date)
-            cov_matrix = self.cov_model.fetch_cov(calc_date, this_data)
-            if not model.empty and len(cov_matrix) > 0:
-                evolved_preholding, evolved_bm = \
-                    Simulator.evolve_portfolio(codes, pre_holding, this_data)
-                factor_values = \
-                    this_data[self.model_factory.factor_names].as_matrix()
-                er_model = model['model']
-                er = er_model.calculate_er(factor_values)
-                er_table = pd.DataFrame(er, index=codes, columns=['er'])
-                adjusted_cov_matrix = \
-                    self.parameters_adjust(er, cov_matrix,
-                                           self.model_factory.decay)
-                positions = self.rebalance(apply_date,
-                                           er_table,
-                                           evolved_preholding,
-                                           cov=adjusted_cov_matrix,
-                                           constraints=trading_constraints)
+            evolved_preholding, evolved_bm = \
+                Simulator.evolve_portfolio(pre_holding, this_data)
 
+            er_table, positions = self.rebalance(calc_date,
+                                                 apply_date,
+                                                 evolved_preholding,
+                                                 this_data)
+
+            if not er_table.empty and not pre_holding.empty:
                 self.aggregate_data(
-                    er_table,
-                    pre_holding,
-                    evolved_preholding,
-                    evolved_bm,
-                    trading_constraints,
-                    positions)
+                        er_table,
+                        pre_holding,
+                        evolved_preholding,
+                        evolved_bm,
+                        positions)
                 self.log_info(apply_date, calc_date, positions)
 
-                pre_holding = positions[['todayHolding']]
+            pre_holding = positions[['todayHolding']]
 
         return self.info_keeper.info_view()
-
-    def parameters_adjust(self, er, cov, decay):
-        cov_scaled = decay * cov
-        return Settings.risk_aversion(er, cov_scaled) * cov_scaled
 
     def aggregate_data(self,
                        er_table: pd.DataFrame,
                        pre_holding: pd.DataFrame,
                        evolved_preholding: pd.DataFrame,
                        evolved_bm: pd.DataFrame,
-                       trading_constraints: Constraints,
                        positions: pd.DataFrame) -> None:
         if not pre_holding.empty:
             positions['preHolding'] = pre_holding['todayHolding']
@@ -103,19 +69,22 @@ class Simulator(object):
         positions['er'] = er_table['er']
         positions['evolvedPreHolding'] = evolved_preholding['todayHolding']
         positions['evolvedBMWeight'] = evolved_bm[BENCHMARK]
-        positions['suspend'] = trading_constraints.suspend
 
-    def rebalance(self, apply_date, er_table, pre_holding, **kwargs):
-        if self.scheduler.is_rebalance(apply_date):
-            return self.port_calc.trade(er_table, pre_holding, **kwargs)
-        else:
-            return pre_holding.copy(deep=True)
+    def rebalance(self,
+                  calc_date: pd.Timestamp,
+                  apply_date: pd.Timestamp,
+                  pre_holding: pd.DataFrame,
+                  this_data: pd.DataFrame):
+        return self.port_calc.trade(calc_date,
+                                    apply_date,
+                                    pre_holding,
+                                    this_data)
 
     @staticmethod
-    def evolve_portfolio(codes: List[int],
-                         pre_holding: pd.DataFrame,
+    def evolve_portfolio(pre_holding: pd.DataFrame,
                          repo_data: pd.DataFrame) \
             -> Tuple[pd.DataFrame, pd.DataFrame]:
+        codes = repo_data.code.astype(int)
         evolved_preholding = pd.DataFrame(
             data=np.zeros(len(codes)), index=codes, columns=['todayHolding'])
         returns = repo_data['dailyReturn'].values

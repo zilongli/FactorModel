@@ -12,6 +12,7 @@ from FactorModel.performance import PerfAttributeAOI
 from FactorModel.performance import PerfAttributeFocusLOO
 from FactorModel.performance import PerfAttributeFocusAOI
 from FactorModel.portcalc import MeanVariancePortCalc
+from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.covmodel import CovModel
@@ -32,15 +33,19 @@ env = FileProvider("d:/data2.pkl")
 trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)
-port_calc = MeanVariancePortCalc(method='no_cost')
 scheduler = Scheduler(env, 'weekly')
-constrinats_builder = Regulator(INDUSTRY_LIST)
+constraints_builder = Regulator(INDUSTRY_LIST)
+port_calc = MeanVariancePortCalc(method='no_cost',
+                                 model_factory=trainer,
+                                 cov_model=cov_model,
+                                 constraints_builder=constraints_builder,
+                                 scheduler=scheduler)
+port_calc = ERRankPortCalc(100,
+                           101,
+                           model_factory=trainer,
+                           scheduler=scheduler)
 simulator = Simulator(env,
-                      trainer,
-                      cov_model,
-                      scheduler,
-                      port_calc,
-                      constrinats_builder)
+                      port_calc)
 analyser = PnLAnalyser()
 
 df1 = env.source_data
@@ -69,6 +74,6 @@ with ExcelWriter('result_weekly_mv2.xlsx') as f:
                             scheduler,
                             port_calc,
                             cov_model,
-                            constrinats_builder,
+                            constraints_builder,
                             df1)
         attributer.report.to_excel(f, cls_name)
