@@ -11,7 +11,6 @@ from FactorModel.schedule import Scheduler
 from FactorModel.portcalc import PortCalc
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.regulator import Regulator
-from FactorModel.facts import BENCHMARK
 
 
 class PerfAttributeBase(metaclass=abc.ABCMeta):
@@ -51,7 +50,7 @@ class PerfAttributeBase(metaclass=abc.ABCMeta):
             num_cols = [s + '_num' for s in ['total'] + list(factor_names)]
             weights_cols = [
                 s + '_weight' for s
-                in [BENCHMARK, 'total'] + list(factor_names)]
+                in ['benchmark', 'total'] + list(factor_names)]
             col_names = \
                 ['calcDate', 'total'] \
                 + list(factor_names) \
