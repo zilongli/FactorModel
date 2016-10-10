@@ -28,7 +28,7 @@ try:
 except ImportError:
     pass
 
-factor_names = ['RMC', 'RVS', 'D5M5']
+factor_names = ['Growth', 'CFinc1', 'Rev5m']
 env = FileProvider("d:/data2.pkl")
 trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)

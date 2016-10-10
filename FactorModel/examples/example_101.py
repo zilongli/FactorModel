@@ -40,5 +40,4 @@ df1[df2.columns] = df2
 
 returns = analyser.calculate(df1)
 analyser.plot()
-analyser.report.to_csv('d:/python.csv')
 plt.show()

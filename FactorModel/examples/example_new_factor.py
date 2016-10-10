@@ -8,9 +8,7 @@ Created on 2016-9-23
 import pandas as pd
 from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
-from FactorModel.covmodel import CovModel
 from FactorModel.portcalc import ERRankPortCalc
-from FactorModel.portcalc import MeanVariancePortCalc
 from FactorModel.providers import MSSQLProvider
 from FactorModel.simulator import Simulator
 from FactorModel.analysers import PnLAnalyser
@@ -26,7 +24,7 @@ env = MSSQLProvider(
 
 factor_name = 'factor1'
 
-env.load_data('2014-01-01', '2015-12-31', None)
+env.load_data('2011-01-01', '2015-12-31', None, 'zz500')
 
 external_data = pd.read_csv('H:/personal/jiangkai/factors20160927.csv',
                             parse_dates=[0],
