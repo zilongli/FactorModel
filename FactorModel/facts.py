@@ -34,5 +34,3 @@ INDUSTRY_LIST = ['CommunicationsAndTransportation',
                  'FoodAndBeverage']
 
 STYLE_LIST = ['Size']
-
-BENCHMARK = 'zz500'

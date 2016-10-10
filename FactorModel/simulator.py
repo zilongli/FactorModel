@@ -11,8 +11,6 @@ import pandas as pd
 from FactorModel.providers import Provider
 from FactorModel.portcalc import PortCalc
 from FactorModel.infokeeper import InfoKeeper
-from FactorModel.facts import BENCHMARK
-from FactorModel.settings import Settings
 
 
 class Simulator(object):
@@ -68,7 +66,7 @@ class Simulator(object):
             positions['preHolding'] = 0.
         positions['er'] = er_table['er']
         positions['evolvedPreHolding'] = evolved_preholding['todayHolding']
-        positions['evolvedBMWeight'] = evolved_bm[BENCHMARK]
+        positions['evolvedBMWeight'] = evolved_bm['benchmark']
 
     def rebalance(self,
                   calc_date: pd.Timestamp,
@@ -96,11 +94,11 @@ class Simulator(object):
             values *= (1. + returns)
             values /= cash + np.sum(values)
 
-        values = repo_data[BENCHMARK].values.copy()
+        values = repo_data['benchmark'].values.copy()
         values *= (1. + returns)
         values /= np.sum(values)
         evolved_bm = pd.DataFrame(
-            data=values, index=codes, columns=[BENCHMARK])
+            data=values, index=codes, columns=['benchmark'])
         return evolved_preholding, evolved_bm
 
     def log_info(self,

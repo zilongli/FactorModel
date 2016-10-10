@@ -20,7 +20,7 @@ class Scheduler(object):
         if start_date:
             self.start_date = np.datetime64(start_date)
         else:
-            self.start_date = np.datetiem64('1970-01-01')
+            self.start_date = np.datetime64('1970-01-01')
 
         if self.freq == 'biweekly':
             week_ends = \

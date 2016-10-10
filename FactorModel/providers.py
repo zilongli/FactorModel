@@ -168,7 +168,8 @@ class MSSQLProvider(DataFrameProvider):
     def load_repository_data(self,
                              start_date: int,
                              end_date: int,
-                             alpha_factors: List[str]) \
+                             alpha_factors: List[str],
+                             benchmark_name: str) \
             -> Tuple[int, int]:
         # stock universe
         sql = \
@@ -332,18 +333,25 @@ class MSSQLProvider(DataFrameProvider):
         df.drop(['Date', 'Code'], axis=1, inplace=True)
 
         # index components
+
+        if benchmark_name == 'zz500':
+            componants = '500Weight'
+        else:
+            raise ValueError('benchmark name ({0}) is not recognized').format(benchmark_name)
+
         sql = 'select [Date], [Code], ' \
-              '[500Weight] as zz500 from [IndexComponents] ' \
+              '[{componants}] as benchmark from [IndexComponents] ' \
               'where [Date] >= {calc_start} ' \
               'and [Date] <= {calc_end} ' \
               'and [Code] in ({code_list_str}) ' \
               'order by [Date], [Code]' \
               .format(
+                  componants=componants,
                   calc_start=calc_start,
                   calc_end=calc_end,
                   code_list_str=code_list_str)
         raw_index_components = pd.read_sql(sql, self.mf_engine)
-        raw_index_components['zz500'] /= 100.
+        raw_index_components['benchmark'] /= 100.
         df = pd.merge(
             df,
             raw_index_components,
@@ -446,10 +454,11 @@ class MSSQLProvider(DataFrameProvider):
     def load_data(self,
                   start_date: str,
                   end_date: str,
-                  alpha_factors: List[str]):
+                  alpha_factors: List[str],
+                  benchmark_name: str) -> None:
         start_date = int(start_date.replace('-', ''))
         end_date = int(end_date.replace('-', ''))
         calc_start, calc_end = \
-            self.load_repository_data(start_date, end_date, alpha_factors)
+            self.load_repository_data(start_date, end_date, alpha_factors, benchmark_name)
         self.load_cov_data(calc_start, calc_end)
         self.load_date_table(start_date, end_date)
