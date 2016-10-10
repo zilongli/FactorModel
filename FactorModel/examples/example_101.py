@@ -19,13 +19,13 @@ try:
 except ImportError:
     pass
 
-factor_names = ['RMC', 'RVS', 'D5M5']
+factor_names = ['Growth', 'CFinc1', 'Rev5m']
 env = FileProvider("d:/data2.pkl")
 trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
-scheduler = Scheduler(env, 'daily')
+scheduler = Scheduler(env, 'weekly', '2010-02-05')
 port_calc = ERRankPortCalc(100,
-                           200,
+                           101,
                            model_factory=trainer,
                            scheduler=scheduler)
 simulator = Simulator(env,
@@ -40,4 +40,5 @@ df1[df2.columns] = df2
 
 returns = analyser.calculate(df1)
 analyser.plot()
+analyser.report.to_csv('d:/python.csv')
 plt.show()

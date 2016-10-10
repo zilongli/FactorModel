@@ -9,6 +9,7 @@ from FactorModel.schedule import Scheduler
 from FactorModel.ermodel import ERModelTrainer
 from FactorModel.covmodel import CovModel
 from FactorModel.portcalc import MeanVariancePortCalc
+from FactorModel.portcalc import ERRankPortCalc
 from FactorModel.simulator import Simulator
 from FactorModel.providers import MSSQLProvider
 from FactorModel.analysers import PnLAnalyser
@@ -22,7 +23,7 @@ try:
 except ImportError:
     pass
 
-factor_names = ['RMC', 'RVS', 'D5M5']
+factor_names = ['Growth', 'CFinc1', 'Rev5m']
 env = MSSQLProvider(
     '10.63.6.219',
     'sa',
@@ -31,15 +32,21 @@ env.load_data('2008-01-02', '2015-11-01', factor_names)
 trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)
-port_calc = MeanVariancePortCalc(method='cost_budget', cost_budget=2e-4)
 scheduler = Scheduler(env, 'weekly')
-constrinats_builder = Regulator(INDUSTRY_LIST)
+constraints_builder = Regulator(INDUSTRY_LIST)
+port_calc = MeanVariancePortCalc(method='cost_budget',
+                                 model_factory=trainer,
+                                 cov_model=cov_model,
+                                 constraints_builder=constraints_builder,
+                                 scheduler=scheduler,
+                                 cost_budget=2e-4)
+port_calc = ERRankPortCalc(100,
+                           101,
+                           model_factory=trainer,
+                           scheduler=scheduler)
+
 simulator = Simulator(env,
-                      trainer,
-                      cov_model,
-                      scheduler,
-                      port_calc,
-                      constrinats_builder)
+                      port_calc)
 analyser = PnLAnalyser()
 
 df1 = env.source_data
