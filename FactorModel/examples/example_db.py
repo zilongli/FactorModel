@@ -28,8 +28,9 @@ env = MSSQLProvider(
     '10.63.6.219',
     'sa',
     'A12345678!')
+stock_universe = 'zz500+'
 benchmark_name = 'zz500'
-env.load_data('2008-01-02', '2015-11-01', factor_names, benchmark_name)
+env.load_data('2008-01-02', '2015-11-01', factor_names, stock_universe, benchmark_name)
 trainer = ERModelTrainer(250, 1, 5)
 trainer.train_models(factor_names, env.source_data)
 cov_model = CovModel(env)

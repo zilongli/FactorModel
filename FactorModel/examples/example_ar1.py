@@ -105,7 +105,8 @@ class TradingPlan(object):
             end_positions[to_sell_candidates] = 0.
             end_positions[to_keep] = 1.0 / self.target_num
             self.current_weight = end_positions
-            self._log(i, er, ranks, real_r, begin_positions, self.current_weight)
+            self._log(
+                i, er, ranks, real_r, begin_positions, self.current_weight)
 
     def _log(self, step, er, ranks, real_r, begin_positions, end_positions):
         self.steps.append(step * np.ones(self.process.size, dtype=int))

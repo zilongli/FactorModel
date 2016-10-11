@@ -50,16 +50,19 @@ class DataFrameProvider(Provider):
         with open(file_path, 'wb') as f:
             pickle.dump(data_dict, f)
 
-    def append(self, new_data, replace=False):
-
+    def append(self,
+               new_data: pd.DataFrame,
+               replace: bool=False) -> None:
         new_columns = \
-            set(new_data.columns).difference(set(['applyDate', 'calcDate', 'code']))
+            set(new_data.columns).difference(
+                set(['applyDate', 'calcDate', 'code']))
 
         for name in new_columns:
             if name in self.repository and not replace:
                 raise ValueError(
                     '{0} is already in repository. '
-                    'Please rename it in the new data or set replace flag as True')
+                    'Please rename it in the new data'
+                    ' or set replace flag as True')
             elif name in self.repository and replace:
                 del self.repository[name]
 
@@ -147,13 +150,21 @@ class MSSQLProvider(DataFrameProvider):
                  pwd):
         super().__init__()
         conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
-        mf_conn = conn_template.format(
-            user=user, pwd=pwd, server=server, db_name='MultiFactor')
-        pm_conn = conn_template.format(
-            user=user, pwd=pwd, server=server, db_name='PortfolioManagements')
+        self.server = server
+        self.user = user
+        self.pwd = pwd
+        self.mf_engine = None
+        self.pm_engine = None
 
-        self.mf_engine = sqlalchemy.create_engine(mf_conn)
-        self.pm_engine = sqlalchemy.create_engine(pm_conn)
+    def create_conn(self, db_names: List[str]):
+        conn_template = 'mssql+pymssql://{user}:{pwd}@{server}/{db_name}'
+        conns = (
+            sqlalchemy.create_engine(
+                conn_template.format(user=self.user,
+                                     pwd=self.pwd,
+                                     server=self.server,
+                                     db_name=db)) for db in db_names)
+        return conns
 
     def load_date_table(self,
                         start_date: int,
@@ -232,10 +243,11 @@ class MSSQLProvider(DataFrameProvider):
 
             for table_name, factors in table2factors.items():
                 factor_str = ','.join(factors)
-                sql = 'select [Date], [Code], {factors} from {table_name} ' \
-                      'where [Date] >= {calc_start} and [Date] <= {calc_end} ' \
-                      'and [Code] in ({code_list_str}) ' \
-                      'ORDER BY [Date], [Code]' \
+                sql = \
+                    'select [Date], [Code], {factors} from {table_name} ' \
+                    'where [Date] >= {calc_start} and [Date] <= {calc_end} ' \
+                    'and [Code] in ({code_list_str}) ' \
+                    'ORDER BY [Date], [Code]' \
                     .format(factors=factor_str,
                             table_name=table_name,
                             calc_start=calc_start,
@@ -337,7 +349,9 @@ class MSSQLProvider(DataFrameProvider):
         if benchmark_name == 'zz500':
             componants = '500Weight'
         else:
-            raise ValueError('benchmark name ({0}) is not recognized').format(benchmark_name)
+            raise ValueError(
+                'benchmark name ({0}) is not recognized').format(
+                    benchmark_name)
 
         sql = 'select [Date], [Code], ' \
               '[{componants}] as benchmark from [IndexComponents] ' \
@@ -455,10 +469,22 @@ class MSSQLProvider(DataFrameProvider):
                   start_date: str,
                   end_date: str,
                   alpha_factors: List[str],
+                  stock_universe: str,
                   benchmark_name: str) -> None:
+        if stock_universe == 'zz500+':
+            self.mf_engine, self.pm_engine = \
+                self.create_conn(['MultiFactor', 'PortfolioManagements'])
+        elif stock_universe == 'hs300+':
+            self.mf_engine, self.pm_engine = \
+                self.create_conn(['MultiFactor', 'PortfolioManagements300'])
+        else:
+            raise ValueError(
+                'Stock universe ({0}) is not recognized'.format(
+                    stock_universe))
         start_date = int(start_date.replace('-', ''))
         end_date = int(end_date.replace('-', ''))
         calc_start, calc_end = \
-            self.load_repository_data(start_date, end_date, alpha_factors, benchmark_name)
+            self.load_repository_data(
+                start_date, end_date, alpha_factors, benchmark_name)
         self.load_cov_data(calc_start, calc_end)
         self.load_date_table(start_date, end_date)
